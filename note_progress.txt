@@ -1,4 +1,4 @@
-Minggu, 12 Mei 2025 (Ikhsan)
+Minggu, 11 Mei 2025 (Ikhsan)
 
 Progress
 1. Sudah config tailwind dan routing
