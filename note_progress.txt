@@ -1,0 +1,14 @@
+Minggu, 11 Mei 2025 (Ikhsan)
+
+Progress
+1. Sudah config tailwind dan routing
+2. Component untuk user (Search bar, Navbar, Footer)
+3. Navbar ada 3 tipe (Guest, Register, Auth)
+4. Page untuk landing page Guest sudah dibuat dan responsif
+
+Next Commit Target
+1. Page cari pekerjaan dan register selesai dan responsif
+2. Ganti logo
+3. Animasi lebih smooth (opsional)
+4. Sudah data dummy
+5. State management selesai
