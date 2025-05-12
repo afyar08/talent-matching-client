@@ -12,3 +12,15 @@ Next Commit Target
 3. Animasi lebih smooth (opsional)
 4. Sudah data dummy
 5. State management selesai
+
+Senin, 12 Mei 2025 (Ikhsan)
+
+Progress
+1. Sudah page cari pekerjaan, detail pekerjaan, dan register selesai (belum responsif)
+2. Sudah menggunakan data dari json
+
+Next Commit Target
+1. Ganti logo
+2. Perbaiki filter (Masih Banyak yang Perlu di Ubah)
+3. Responsif
+4. Menggunakan state management

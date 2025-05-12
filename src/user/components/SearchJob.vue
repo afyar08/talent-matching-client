@@ -134,10 +134,18 @@ onUnmounted(() => {
                         </div>
                     </div>
 
-                    <button @click="handleSearch"
-                        class="bg-[#2F27CE] text-white px-8 py-3 rounded-md font-bold hover:bg-[#261fb3] transition-colors">
+                    <router-link 
+                        :to="{
+                            path: '/job-search',
+                            query: { 
+                                job: jobQuery, 
+                                location: location 
+                            }
+                        }"
+                        @click.native="handleSearch"
+                        class="bg-[#2F27CE] text-white px-8 py-3 rounded-md font-bold hover:bg-[#261fb3] transition-colors inline-block text-center">
                         Search
-                    </button>
+                    </router-link>
                 </div>
             </div>
         </div>

@@ -1,0 +1,7 @@
+{
+    "nama": "Rizki",
+    "email": "rizki@gmail.com",
+    "pendidikan": "Sarjana (S1)",
+    "pengalaman": 2,
+    "skills": ["JavaScript", "Java", "React.js"]
+}
