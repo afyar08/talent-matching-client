@@ -150,11 +150,11 @@ const register = async () => {
         </div>
       </div>
       
-      <!-- Right Side - Image Placeholder -->
-      <div class="hidden md:flex md:w-1/2 bg-gray-100 items-center justify-center">
-        <div class="max-w-md p-8">
+      <!-- Right Side - Image (Updated to use asset) -->
+      <div class="hidden md:flex md:w-1/2 items-center justify-center">
+        <div class="max-w-xl p-8 mr-40">
           <img 
-            src="https://via.placeholder.com/500x400?text=Registration+Illustration" 
+            src="../../../assets/RegisterPicture.png" 
             alt="Registration Illustration"
             class="w-full h-auto"
           />

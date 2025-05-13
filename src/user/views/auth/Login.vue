@@ -44,11 +44,11 @@ const login = async () => {
     
     <!-- Main Content -->
     <main class="flex-grow flex">
-      <!-- Left Side - Image Placeholder -->
-      <div class="hidden md:flex md:w-1/2 bg-gray-100 items-center justify-center">
-        <div class="max-w-md p-8">
+      <!-- Left Side - Image (Updated to be slightly bigger) -->
+      <div class="hidden md:flex md:w-1/2 items-center justify-center">
+        <div class="max-w-xl p-8 ml-40">
           <img 
-            src="https://via.placeholder.com/500x400?text=Job+Search+Illustration" 
+            src="../../../assets/LoginPicture.png" 
             alt="Job Search Illustration"
             class="w-full h-auto"
           />
@@ -56,7 +56,7 @@ const login = async () => {
       </div>
       
       <!-- Right Side - Login Form -->
-      <div class="w-full md:w-1/2 flex items-center justify-center p-8">
+      <div class="w-full md:w-1/2 flex items-center justify-center p-8 mr-30">
         <div class="w-full max-w-md">
           <div class="text-center mb-8">
             <h1 class="text-3xl font-bold mb-2">Welcome back to</h1>

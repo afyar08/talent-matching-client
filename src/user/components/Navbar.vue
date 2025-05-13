@@ -69,12 +69,13 @@ const closeDropdown = () => {
   <nav class="w-full h-[70px] flex justify-center shadow-sm">
     <div class="w-full max-w-[1440px] h-full flex items-center justify-between px-4 md:px-8 2xl:px-0">
       <div class="flex items-center h-full">
-        <!-- Logo -->
+        <!-- Logo - Updated to use image asset -->
         <div class="flex items-center mr-8">
-          <svg v-if="navbarState !== 'register'" class="w-8 h-8 text-[#2F27CE] mr-2" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" />
-          </svg>
-          <div class="font-bold text-2xl text-[#2F27CE]">TalentMatch</div>
+          <img 
+            src="../../assets/LogoTalentMatching.png" 
+            alt="TalentMatch Logo" 
+            class="w-auto h-8 mr-2"
+          />
         </div>
         
         <!-- Desktop Navigation Items - Only for guest and auth states -->
@@ -164,9 +165,16 @@ const closeDropdown = () => {
     class="md:hidden fixed inset-0 z-50 bg-white"
   >
     <div class="flex flex-col p-4">
-      <!-- Mobile Menu Header -->
+      <!-- Mobile Menu Header - Also update logo here -->
       <div class="flex justify-between items-center mb-6">
-        <div class="font-bold text-2xl text-[#2F27CE]">TalentMatch</div>
+        <div class="flex items-center">
+          <img 
+            src="../../assets/LogoTalentMatching.png" 
+            alt="TalentMatch Logo" 
+            class="w-auto h-8 mr-2"
+          />
+          <div class="font-bold text-2xl text-[#2F27CE]">TalentMatch</div>
+        </div>
         <button @click="toggleMobileMenu" class="text-[#2F27CE] p-2">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
