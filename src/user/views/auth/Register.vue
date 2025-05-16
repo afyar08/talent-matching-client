@@ -32,7 +32,7 @@ const register = async () => {
     console.log('Registration data:', { fullName: fullName.value, email: email.value });
     
     // Redirect to login after successful registration
-    router.push('/login');
+    router.push('/register/detail');
   } catch (error) {
     errorMessage.value = 'An error occurred during registration';
     console.error('Registration error:', error);

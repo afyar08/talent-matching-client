@@ -30,14 +30,6 @@ const job = ref({
     job_description: "<p><strong>Tugas dan Tanggung Jawab</strong> <em>(Job Description)</em>:</p><ul><li>Menyediakan laporan berbasis data (<em>data-driven reports</em>) untuk mendukung pengambilan keputusan bisnis. </li><li>Mengumpulkan, menganalisis, dan melaporkan data kinerja aktivitas digital marketing. </li><li>Mengidentifikasi tren dan wawasan dari data untuk mengoptimalkan strategi marketing. </li><li>Membuat laporan dan visualisasi data yang mudah dipahami. </li><li>Menggunakan alat analisis data (misalnya, Google Analytics, Excel, SQL) untuk mengolah data.</li><li>Memantau dan menganalisis KPI (<em>Key Performance Indicators</em>) untuk mengukur efektivitas marketing. </li><li>Menyajikan hasil analisis data kepada tim marketing dan manajemen.</li><li>Mengembangkan dan memelihara dasbor data.</li><li>Melakukan analisis kompetitif dan riset pasar. </li><li>Mengolah dan menganalisis data untuk memberikan insight bisnis.</li><li>Melakukan riset pasar untuk mengidentifikasi tren industri dan peluang bisnis.</li><li>Menyusun dan menyajikan laporan analisis kepada tim terkait.</li><li>Berkolaborasi dengan divisi marketing, sales dan operasional Perusahaan.</li><li>Mengelola akses dan keamanan data (<em>data access and security</em>) untuk laporan. </li></ul><p></p><p><strong>Keahlian</strong> (<em>Skill</em>):</p><ul><li>SQL dan data Visualization tools  </li><li>Power BI</li><li>Microsoft Excell</li><li>Google Sheet</li><li>Google Apps Script, Python</li><li>Data Analytics dan Statistical Data Analysis</li></ul><p></p><p><strong>Kualifikasi</strong> (<em>Requirements</em>):</p><ul><li>Pendidikan minimal Diploma/Sarjana di bidang terkait (relevan).</li><li>Memiliki pengalaman bekerja minimal 1 s.d. 3 tahun dibidang pengolahan dan analis data (lebih diutamakan di bidang <em>digital marketing</em> dan <em>market research</em>).</li><li>Lancar berbahasa Inggris.</li><li>Memiliki integritas, loyalitas, pekerja keras, dan <em>fast response.</em></li><li>Pengalaman dalam menggunakan alat analisis data (Google Analytics, Excel, SQL, Python).</li><li>Kemampuan untuk membuat laporan dan visualisasi data yang jelas dan ringkas, dengan  Power BI atau Tableau.</li><li>Memahami statistik, analisis tren, dan <em>machine learning</em> dasar.</li><li>Kemampuan untuk bekerja dengan data besar dan kompleks. </li><li>Berpikir analitis, <em>detail-oriented</em>, serta mampu menyajikan data secara logis.</li><li>Komunikatif &amp; kolaboratif, bisa bekerja sama dengan tim marketing, sales, dan operasional.</li><li>Kemampuan dalam mengidentifikasi pola dan tren dari data.</li></ul><p></p><p><strong>Kompensani dan Benefit:</strong></p><ul><li>Gaji yang kompetitif dengan insentif kinerja.</li><li>BPJS (Asuransi kesehatan)</li><li>Kesempatan untuk bertumbuh dan berkembang di perusahaan yang bereputasi baik.</li></ul><p></p>"
 });
 
-// State for bookmark
-const isBookmarked = ref(false);
-
-// Toggle bookmark state
-const toggleBookmark = () => {
-    isBookmarked.value = !isBookmarked.value;
-};
-
 // Format salary from number to display format
 const formatSalary = (min, max) => {
     if (!min && !max) return 'Salary not disclosed';
@@ -146,17 +138,6 @@ const formatSalary = (min, max) => {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                         </svg>
                         Link Sumber
-                    </button>
-                    
-                    <!-- Bookmark Button with Icon -->
-                    <button 
-                        @click="toggleBookmark" 
-                        class="flex items-center gap-2 bg-[#3042DF] text-white font-semibold py-2 px-6 rounded-md hover:bg-[#2735b3] transition-colors"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" :fill="isBookmarked ? 'white' : 'none'" />
-                        </svg>
-                        Bookmark
                     </button>
                 </div>
             </div>

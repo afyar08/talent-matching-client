@@ -3,7 +3,6 @@ import { ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import Navbar from '../../components/Navbar.vue';
 import Footer from '../../components/Footer.vue';
-import SearchJob from '../../components/SearchJob.vue';
 import JobList from '../../components/JobList.vue';
 import JobFilter from '../../components/JobFilter.vue';
 
@@ -89,9 +88,21 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen flex flex-col">
-    <Navbar navbarState="guest" />
-    <main class="flex-grow bg-[#FCFCFF]">
-      <SearchJob />
+    <Navbar />
+    <main class="flex-grow">
+      <!-- Recommendations header section -->
+      <section class="bg-[#FCFCFF] pt-9 pb-6">
+        <div class="max-w-[1440px] mx-auto px-4 md:px-8 2xl:px-0">
+          <div class="flex flex-col items-center mb-10 mt-12 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold mb-3 font-['Be_Vietnam_Pro']">
+              Recommendations <span class="text-[#2F27CE]">For You</span>
+            </h1>
+            <p class="text-gray-600 text-base md:text-lg font-['Be_Vietnam_Pro'] max-w-[90%] md:max-w-none">
+              Rekomendasi lowongan pekerjaan IT berdasarkan kecocokan profilmu
+            </p>
+          </div>
+        </div>
+      </section>
       
       <div class="max-w-[1440px] mx-auto px-4 md:px-8 2xl:px-0 my-8 flex flex-col md:flex-row gap-6 items-start">
         <!-- Mobile filter toggle -->

@@ -79,7 +79,7 @@ const validateDateOfBirth = () => {
 <template>
   <div class="min-h-screen flex flex-col font-be-vietnam-pro bg-white">
     <!-- Navbar with auth state -->
-    <Navbar navbarState="auth" />
+    <Navbar navbarState="register" />
     
     <!-- Main Content -->
     <main class="flex-grow flex flex-col items-center px-6 py-8 mt-15 max-w-screen-xl mx-auto w-full">
@@ -134,22 +134,27 @@ const validateDateOfBirth = () => {
             
             <!-- Upload container -->
             <div class="w-full max-w-md">
-              <div class="border border-dashed border-[#4745F6] p-6 rounded bg-[#F8F8FF] flex flex-col items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#4745F6] mb-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                </svg>
-                <label class="cursor-pointer">
-                  <span class="text-[#4745F6] hover:underline">Click to replace</span>
-                  <span class="text-gray-600"> or drag and drop</span>
-                  <input
-                    type="file"
-                    accept="image/png, image/jpeg, image/jpg, image/gif"
-                    class="hidden"
-                    @change="handleImageUpload"
-                  />
-                </label>
-                <p class="text-xs text-gray-400 mt-1">SVG, PNG, JPG or GIF (max. 400 x 400px)</p>
-              </div>
+              <!-- Hide the file input but keep it in the DOM -->
+              <input
+                id="profilePicture"
+                type="file"
+                accept="image/png, image/jpeg, image/jpg, image/gif"
+                class="hidden"
+                @change="handleImageUpload"
+              />
+              
+              <!-- Make the entire container a label for the hidden input -->
+              <label for="profilePicture" class="cursor-pointer">
+                <div class="border border-dashed border-[#4745F6] p-6 rounded bg-[#F8F8FF] flex flex-col items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#4745F6] mb-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                  </svg>
+                  <div>
+                    <span class="text-[#4745F6] hover:underline">Click to replace</span>
+                  </div>
+                  <p class="text-xs text-gray-400 mt-1">SVG, PNG, JPG or GIF (max. 400 x 400px)</p>
+                </div>
+              </label>
             </div>
           </div>
           
