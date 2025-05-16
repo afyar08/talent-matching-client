@@ -1,5 +1,21 @@
 <script setup>
 import { ref, computed, onMounted, defineProps, watch } from 'vue';
+import { getFromStorage } from '../../utils/localStorage';
+import { useRoute } from 'vue-router';
+
+// Get current route to check if we're on recommendation page
+const route = useRoute();
+
+// Check if we're on the recommendation page
+const isRecommendationPage = computed(() => {
+  return route.path.includes('/recommendation');
+});
+
+// Format similarity score as percentage
+const formatMatchPercentage = (score) => {
+  // Convert decimal to percentage and round to nearest integer
+  return Math.round(score * 100) + '%';
+};
 
 // Accept filter props from parent component
 const props = defineProps({
@@ -11,8 +27,14 @@ const props = defineProps({
       jobTypes: [],
       workArrangements: [],
       experiences: [],
-      educationLevels: []
+      educationLevels: [],
+      job: '',
+      location: ''
     })
+  },
+  bookmarkedOnly: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -29,23 +51,41 @@ const bookmarkedJobs = ref({});
 
 // Toggle bookmark status for a job
 const toggleBookmark = (jobId) => {
-  if (bookmarkedJobs.value[jobId]) {
+  // If on bookmarked page, removing a bookmark should remove the job from the list
+  if (props.bookmarkedOnly && bookmarkedJobs.value[jobId]) {
+    // Remove job from the list
+    filteredJobs.value = filteredJobs.value.filter(job => job.id !== jobId);
+    jobs.value = jobs.value.filter(job => job.id !== jobId);
     bookmarkedJobs.value[jobId] = false;
   } else {
-    bookmarkedJobs.value[jobId] = true;
+    // Regular toggle behavior
+    bookmarkedJobs.value[jobId] = !bookmarkedJobs.value[jobId];
   }
 };
 
-// Watch for filter changes and apply filtering
-watch(() => props.filters, (newFilters) => {
-  applyFilters(newFilters);
-}, { deep: true });
+// Add check for user authentication status
+const isAuthenticated = computed(() => {
+  return !!getFromStorage('user-id');
+});
 
-// Apply filters to the jobs list
+// Computed property for the detail page route
+const getDetailRoute = computed(() => {
+  return isAuthenticated.value ? '/home/detail-job' : '/detail-job';
+});
+
+// // Watch for filter changes and apply filtering
+// watch(() => props.filters, (newFilters) => {
+//   applyFilters(newFilters);
+// }, { deep: true });
+
+// Apply filters to the jobs list - remove job and location filtering
 const applyFilters = (filters) => {
   if (!jobs.value.length) return;
   
   filteredJobs.value = jobs.value.filter(job => {
+    // REMOVED: No longer filter by job search term
+    // REMOVED: No longer filter by location
+    
     // Filter by salary range if provided
     if (filters.salaryMin && job.salary_min) {
       if (parseFloat(job.salary_min) < parseFloat(filters.salaryMin)) {
@@ -134,16 +174,28 @@ const formatSkills = (skills) => {
   return { displayed: displayedSkills, more: moreCount };
 };
 
-// Load jobs data from JSON file
+// Load jobs data from JSON file or use bookmark data if bookmarkedOnly is true
 const loadJobs = async () => {
   try {
     isLoading.value = true;
-    const response = await fetch('../../../jobs.json');
-    if (!response.ok) {
-      throw new Error('Failed to fetch jobs data');
-    }
     
-    const data = await response.json();
+    let data;
+    
+    if (props.bookmarkedOnly) {
+      // Mock bookmark data (in a real app, this would come from an API or localStorage)
+      const response = await fetch('../../../bookmark.json');
+      if (!response.ok) {
+        throw new Error('Failed to fetch bookmarked jobs data');
+      }
+      data = await response.json();
+    } else {
+      // Regular jobs data
+      const response = await fetch('../../../jobs.json');
+      if (!response.ok) {
+        throw new Error('Failed to fetch jobs data');
+      }
+      data = await response.json();
+    }
     
     // Transform data to match our component needs
     jobs.value = data.result.map(job => ({
@@ -155,8 +207,16 @@ const loadJobs = async () => {
       salary_min: job.minimum_salary,
       salary_max: job.maximum_salary,
       required_skills: job.required_skills || ['JavaScript', 'CSS', 'HTML'], // Default skills
-      job_description: job.job_description
+      job_description: job.job_description,
+      similarity_score: 0.4,
     }));
+    
+    // If bookmarkedOnly, mark all jobs as bookmarked
+    if (props.bookmarkedOnly) {
+      jobs.value.forEach(job => {
+        bookmarkedJobs.value[job.id] = true;
+      });
+    }
     
     // Initialize filteredJobs with all jobs initially
     filteredJobs.value = [...jobs.value];
@@ -175,6 +235,13 @@ const loadJobs = async () => {
 onMounted(() => {
   loadJobs();
 });
+
+// Pagination helper function
+const goToPage = (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page;
+  }
+};
 </script>
 
 <template>
@@ -196,10 +263,19 @@ onMounted(() => {
     
     <!-- Job Listings -->
     <div v-else class="font-epilogue font-semibold">
+      <!-- No bookmarks message -->
+      <div v-if="props.bookmarkedOnly && filteredJobs.length === 0" class="text-center py-12">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z" />
+        </svg>
+        <h3 class="text-xl font-bold text-gray-700 mb-2">Belum ada lowongan tersimpan</h3>
+        <p class="text-gray-500">Tandai lowongan favorit dengan bookmark untuk melihatnya nanti</p>
+      </div>
+      
       <!-- Job Cards -->
-      <div class="space-y-6">
+      <div v-else class="space-y-6">
         <div v-for="job in paginatedJobs" :key="job.id" 
-          class="bg-white p-4 rounded-[5px] border border-gray-200 hover:shadow-md transition-shadow flex items-center justify-between w-full h-[149px]">
+          class="bg-white p-4 pr-10 rounded-[5px] border border-gray-200 hover:shadow-md transition-shadow flex items-center justify-between w-full h-[149px]">
           
           <!-- Job Info Section -->
           <div class="flex gap-4 items-center">
@@ -215,10 +291,11 @@ onMounted(() => {
             
             <!-- Job Details -->
             <div>
+              <!-- Remove match percentage from here -->
               <h3 class="font-bold text-lg">{{ job.job_title }}</h3>
               <p class="text-gray-700 font-normal">{{ job.company_name }}</p>
               
-              <!-- Location, Salary and Skills - Rearranged -->
+              <!-- Location, Salary and Skills -->
               <div class="flex items-center flex-wrap gap-2 mt-1">
                 <!-- Location -->
                 <div class="flex items-center text-gray-600 gap-2">
@@ -257,14 +334,15 @@ onMounted(() => {
           </div>
           
           <!-- Action Button and Bookmark -->
-          <div class="flex items-center self-center space-x-3">
-            <!-- Bookmark Icon -->
+          <div class="flex items-center self-center space-x-6">
+            <!-- Bookmark Icon - Only show if authenticated -->
             <button 
+              v-if="isAuthenticated"
               @click="toggleBookmark(job.id)"
               class="focus:outline-none transition-colors"
               aria-label="Bookmark job"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" :stroke-width="1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" :stroke-width="1.5">
                 <path 
                   stroke-linecap="round" 
                   stroke-linejoin="round" 
@@ -275,16 +353,26 @@ onMounted(() => {
               </svg>
             </button>
             
-            <!-- Separator Line -->
-            <div class="h-8 w-px bg-gray-200"></div>
+            <!-- Separator Line - Only show if authenticated -->
+            <div v-if="isAuthenticated" class="h-13 w-px bg-gray-200"></div>
             
-            <!-- Detail Button -->
-            <router-link 
-              :to="`/detail-job`" 
-              class="bg-[#2F27CE] text-white font-bold px-6 py-2 rounded-md hover:bg-[#261fb3] transition-colors inline-block"
-            >
-              Lihat Detail
-            </router-link>
+            <!-- Detail Button & Match Percentage in a vertical column -->
+            <div class="flex flex-col items-center gap-2">
+              <router-link 
+                :to="getDetailRoute" 
+                class="bg-[#2F27CE] text-white font-bold px-6 py-2 rounded-md hover:bg-[#261fb3] transition-colors w-full text-center"
+              >
+                Lihat Detail
+              </router-link>
+              
+              <!-- Match Percentage (Only on recommendation page) - Directly under button -->
+                <div v-if="isRecommendationPage" class="flex flex-col w-full items-center">
+                <div class="w-full bg-gray-200 rounded-full h-1">
+                  <div class="bg-green-500 h-1 rounded-full" :style="{ width: formatMatchPercentage(job.similarity_score) }"></div>
+                </div>
+                <span class="text-sm text-gray-600 font-bold mt-1">{{ formatMatchPercentage(job.similarity_score) }} skill match</span>
+                </div>
+            </div>
           </div>
         </div>
       </div>
@@ -349,5 +437,10 @@ onMounted(() => {
 <style scoped>
 .font-epilogue {
   font-family: 'Epilogue', sans-serif;
+}
+
+/* Update custom styles for the match percentage indicator */
+.bg-green-500 {
+  background-color: #5BEAA2;
 }
 </style>
