@@ -9,6 +9,14 @@ import Register from '../user/views/auth/Register.vue'
 import DetailProfil from '../user/views/auth/DetailProfil.vue'
 import SkillRegister from '../user/views/auth/SkillRegister.vue'
 
+// Admin views
+const AdminLayout = () => import('../admin/components/AdminLayout.vue')
+const AdminDashboard = () => import('../admin/views/Dashboard.vue')
+const DataUser = () => import('../admin/views/DataUser.vue')
+const DataPekerjaan = () => import('../admin/views/DataPekerjaan.vue')
+const DataReport = () => import('../admin/views/DataReport.vue')
+const Scraping = () => import('../admin/views/Scraping.vue')
+
 // Define routes
 const routes = [
   {
@@ -59,6 +67,47 @@ const routes = [
     component: {},
     meta: { requiresAuth: true }
   },
+ {
+  path: '/admin',
+  component: AdminLayout,
+  children: [
+    {
+      path: '',
+      name: 'admin-dashboard',
+      component: AdminDashboard
+    },
+    {
+      path: 'users',
+      name: 'admin-users',
+      component: DataUser
+    },
+    {
+      path: 'lowongan',
+      name: 'admin-lowongan',
+      component: DataPekerjaan
+    },
+    {
+      path: 'lowongan/detail/:id',
+      name: 'admin-lowongan-detail',
+      component: () => import('../admin/views/DetailPekerjaan.vue')
+    },
+    {
+      path: 'scraping',
+      name: 'admin-scraping',
+      component: Scraping
+    },
+    {
+      path: 'report',
+      name: 'admin-report',
+      component: DataReport
+    },
+    {
+      path: 'report/detail/:id',
+      name: 'admin-report-detail',
+      component: () => import('../admin/views/DetailReport.vue')
+    }
+  ]
+},
   // 404 Not Found route
   {
     path: '/:pathMatch(.*)*',
