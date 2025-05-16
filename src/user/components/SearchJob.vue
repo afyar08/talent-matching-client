@@ -1,5 +1,11 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { getFromStorage } from '../../utils/localStorage';
+
+// Get route and router instances
+const route = useRoute();
+const router = useRouter();
 
 const jobQuery = ref('');
 const location = ref('');
@@ -34,9 +40,57 @@ const selectProvince = (province) => {
     isDropdownOpen.value = false;
 };
 
+// Initialize search inputs from URL query parameters
+onMounted(() => {
+    // Get query parameters
+    const queryParams = route.query;
+    
+    // Initialize jobQuery from URL if present and not 'all'
+    if (queryParams.job && queryParams.job !== 'all') {
+        jobQuery.value = queryParams.job; // Vue Router already decodes the URL parameters
+    }
+    
+    // Initialize location from URL if present and not 'all'
+    if (queryParams.location && queryParams.location !== 'all') {
+        location.value = queryParams.location; // No need for decodeURIComponent
+        searchProvince.value = queryParams.location;
+    }
+});
+
+// Check if user is authenticated
+const isAuthenticated = computed(() => {
+  return !!getFromStorage('user-id');
+});
+
+// Simplified search handler with authentication check
 const handleSearch = () => {
-    // TODO: Implement search functionality
-    console.log('Searching for:', jobQuery.value, 'in', location.value);
+  // Still save the search parameters in the URL, but inform they're not filtering anything
+  console.log('Search terms are stored in URL but not used for filtering at this time');
+  
+  // Navigate to job search page with raw query parameters, let Vue Router handle encoding
+  const query = {};
+  
+  // Only add parameters if they have values
+  if (jobQuery.value) {
+    query.job = jobQuery.value;
+  } else {
+    query.job = 'all';
+  }
+  
+  if (location.value) {
+    query.location = location.value;
+  } else {
+    query.location = 'all';
+  }
+  
+  // Set the path based on authentication status
+  const searchPath = isAuthenticated.value ? '/home/job-search' : '/job-search';
+  
+  // Use Vue Router's built-in handling
+  router.push({
+    path: searchPath,
+    query: query
+  });
 };
 
 // Additional code to handle clicking outside the dropdown to close it
@@ -134,18 +188,11 @@ onUnmounted(() => {
                         </div>
                     </div>
 
-                    <router-link 
-                        :to="{
-                            path: '/job-search',
-                            query: { 
-                                job: jobQuery, 
-                                location: location 
-                            }
-                        }"
-                        @click.native="handleSearch"
+                    <button 
+                        @click="handleSearch"
                         class="bg-[#2F27CE] text-white px-8 py-3 rounded-md font-bold hover:bg-[#261fb3] transition-colors inline-block text-center">
                         Search
-                    </router-link>
+                    </button>
                 </div>
             </div>
         </div>

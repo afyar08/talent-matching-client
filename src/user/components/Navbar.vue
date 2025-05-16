@@ -1,11 +1,17 @@
 <script setup>
 import { ref, defineProps, computed, watchEffect, watch, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { clearDummyUser } from '../../utils/setupDummyUser';
+import { getFromStorage, removeFromStorage } from '../../utils/localStorage';
 
-// Define props for navbar state
+const router = useRouter();
+const route = useRoute();
+
+// Define props for navbar state (now optional as we'll compute it dynamically)
 const props = defineProps({
   navbarState: {
     type: String,
-    default: 'auth', // Options: 'guest', 'register', 'auth'
+    default: null, // Will be computed if not provided
   },
   userName: {
     type: String,
@@ -17,40 +23,79 @@ const props = defineProps({
   }
 });
 
+// Check authentication status from localStorage safely
+const isAuthenticated = computed(() => {
+  return !!getFromStorage('user-id');
+});
+
+// Determine navbar state based on authentication, props, and current route
+const effectiveNavbarState = computed(() => {
+  // Always prioritize explicit navbarState prop if provided
+  if (props.navbarState) return props.navbarState;
+  
+  // Alternatively, check if we're on a register-related route
+  if (route.path.includes('/register')) return 'register';
+  
+  // Otherwise determine based on authentication status
+  return isAuthenticated.value ? 'auth' : 'guest';
+});
+
 // For profile dropdown
 const isDropdownOpen = ref(false);
 
-// Track the current active navigation item
-const activeNavItem = ref('jobs');
+// Track the current active navigation item - initialize as empty, will be set by computed
+const activeNavItem = ref('');
+
 const isMobileMenuOpen = ref(false);
-const currentState = ref(props.navbarState);
 
 const navItems = {
   guest: [
-    { id: 'jobs', label: 'Cari Pekerjaan' },
+    { id: 'jobs', label: 'Cari Pekerjaan', route: '/' },
     // Add more items as needed
   ],
   register: [], // No nav items in register state
   auth: [
-    { id: 'jobs', label: 'Cari Pekerjaan' },
-    { id: 'rekomendasi', label: 'Rekomendasi untuk Anda' },
+    { id: 'jobs', label: 'Cari Pekerjaan', route: '/home' },
+    { id: 'rekomendasi', label: 'Rekomendasi untuk Anda', route: '/recommendation' },
     // Add more items as needed
   ]
 };
 
-// Use computed property instead of ref for better reactivity
-const currentNavItems = computed(() => navItems[currentState.value] || []);
+// Use computed property for navigation items based on effective state
+const currentNavItems = computed(() => navItems[effectiveNavbarState.value] || []);
 
-// Explicitly watch for changes to navbarState and update the local state
-watch(() => props.navbarState, (newState) => {
-  console.log('NavbarState changed to:', newState);
-  currentState.value = newState;
+// Computed property to determine the active item based on current route
+const determineActiveItem = computed(() => {
+  if (route.path.includes('/recommendation')) {
+    return 'rekomendasi';
+  }
+  if (route.path === '/home' || route.path === '/home/job-search') {
+    return 'jobs';
+  }
+  // Return null to indicate no active item when on other pages
+  return null;
+});
+
+// Watch for route changes and update active item
+watch(() => route.path, () => {
+  activeNavItem.value = determineActiveItem.value;
 }, { immediate: true });
 
-// Force update on mount to ensure correct initial state
+// Update active item on mounted
 onMounted(() => {
-  currentState.value = props.navbarState;
+  activeNavItem.value = determineActiveItem.value;
 });
+
+// Logout function
+const handleLogout = () => {
+  removeFromStorage('user-id');
+  removeFromStorage('user-name');
+  removeFromStorage('user-token');
+  removeFromStorage('token-expired-date');
+  
+  closeDropdown();
+  router.push('/');
+};
 
 const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value;
@@ -63,10 +108,23 @@ const toggleDropdown = () => {
 const closeDropdown = () => {
   isDropdownOpen.value = false;
 };
+
+// Handle nav item click with routing
+const handleNavItemClick = (item) => {
+  activeNavItem.value = item.id;
+  if (item.route) {
+    router.push(item.route);
+  }
+};
+
+// User name with safer localStorage access
+const userName = computed(() => {
+  return props.userName || getFromStorage('user-name') || 'Afyar Siti Ababil';
+});
 </script>
 
 <template>
-  <nav class="w-full h-[70px] flex justify-center shadow-sm">
+  <nav class="w-full h-[70px] flex justify-center shadow-sm bg-white">
     <div class="w-full max-w-[1440px] h-full flex items-center justify-between px-4 md:px-8 2xl:px-0">
       <div class="flex items-center h-full">
         <!-- Logo - Updated to use image asset -->
@@ -79,11 +137,11 @@ const closeDropdown = () => {
         </div>
         
         <!-- Desktop Navigation Items - Only for guest and auth states -->
-        <ul v-if="navbarState !== 'register'" class="hidden md:flex h-full">
+        <ul v-if="effectiveNavbarState !== 'register'" class="hidden md:flex h-full">
           <li 
             v-for="item in currentNavItems" 
             :key="item.id" 
-            @click="activeNavItem = item.id"
+            @click="handleNavItemClick(item)"
             class="cursor-pointer font-epilogue text-base font-medium pr-6 h-full relative flex items-center justify-center"
             :class="activeNavItem === item.id ? 'text-[#2F27CE]' : 'text-gray-500'"
           >
@@ -99,7 +157,7 @@ const closeDropdown = () => {
       </div>
       
       <!-- Auth Buttons - Guest State -->
-      <div v-if="navbarState === 'guest'" class="hidden md:flex gap-4">
+      <div v-if="effectiveNavbarState === 'guest'" class="hidden md:flex gap-4">
         <router-link to="/login" class="font-be-vietnam-pro bg-[#2F27CE] text-white font-bold px-6 py-2 rounded-md hover:bg-[#261fb3] transition-colors border border-[#2F27CE]">
           Login
         </router-link>
@@ -110,10 +168,10 @@ const closeDropdown = () => {
       </div>
       
       <!-- Authenticated User View -->
-      <div v-else-if="navbarState === 'auth'" class="hidden md:flex items-center gap-3 cursor-pointer relative">
+      <div v-else-if="effectiveNavbarState === 'auth'" class="hidden md:flex items-center gap-3 cursor-pointer relative">
         <div class="flex items-center gap-3" @click="toggleDropdown">
           <div class="flex flex-col">
-            <span class="font-epilogue font-semibold text-black text-lg">{{ userName || 'Afyar Siti Ababil' }}</span>
+            <span class="font-epilogue font-semibold text-black text-lg">{{ userName }}</span>
             <span class="font-epilogue font-semibold text-right text-sm text-[#5D5FEF]">Selamat Datang!</span>
           </div>
           <div class="flex items-center gap-2">
@@ -132,22 +190,28 @@ const closeDropdown = () => {
         <!-- Profile Dropdown -->
         <div v-if="isDropdownOpen" class="absolute right-0 top-full mt-3 w-auto min-w-[120px] rounded-lg shadow-lg bg-white z-50 overflow-hidden">
           <div class="flex flex-col m-2">
-            <a href="#" class="px-4 py-1 font-bold text-base font-epilogue text-left text-gray-800 hover:bg-[#EEF0FF] transition-colors rounded-md mb-2">
+            <router-link to="/edit-profil" class="px-4 py-1 font-bold text-base font-epilogue text-left text-gray-800 hover:bg-[#EEF0FF] transition-colors rounded-md mb-2">
               Profil
-            </a>
-            <a href="#" class="px-4 py-1 font-bold text-base font-epilogue text-left text-gray-800 hover:bg-[#EEF0FF] transition-colors rounded-md mb-2">
+            </router-link>
+            <router-link to="/bookmark" class="px-4 py-1 font-bold text-base font-epilogue text-left text-gray-800 hover:bg-[#EEF0FF] transition-colors rounded-md mb-2">
               Bookmark
-            </a>
-            <a href="#" class="px-4 py-1 font-bold text-base font-epilogue text-left text-[#FF6161] hover:bg-[#EEF0FF] transition-colors rounded-md">
+            </router-link>
+            <router-link to="/ubah-password" class="px-4 py-1 font-bold text-base font-epilogue text-left text-gray-800 hover:bg-[#EEF0FF] transition-colors rounded-md mb-2">
+              Ubah Password
+            </router-link>
+            <button 
+              @click="handleLogout"
+              class="px-4 py-1 text-left font-bold text-base font-epilogue text-[#FF6161] hover:bg-[#EEF0FF] transition-colors rounded-md"
+            >
               Keluar
-            </a>
+            </button>
           </div>
         </div>
       </div>
       
       <!-- Mobile Menu Button - Only for guest and auth states -->
       <button 
-        v-if="navbarState !== 'register'"
+        v-if="effectiveNavbarState !== 'register'"
         @click="toggleMobileMenu" 
         class="md:hidden text-[#2F27CE] p-2"
       >
@@ -161,7 +225,7 @@ const closeDropdown = () => {
   
   <!-- Mobile Menu -->
   <div 
-    v-if="isMobileMenuOpen && navbarState !== 'register'" 
+    v-if="isMobileMenuOpen && effectiveNavbarState !== 'register'" 
     class="md:hidden fixed inset-0 z-50 bg-white"
   >
     <div class="flex flex-col p-4">
@@ -187,7 +251,7 @@ const closeDropdown = () => {
         <li 
           v-for="item in currentNavItems" 
           :key="item.id" 
-          @click="activeNavItem = item.id; toggleMobileMenu();"
+          @click="handleNavItemClick(item); toggleMobileMenu();"
           class="cursor-pointer font-epilogue text-lg font-medium p-2"
           :class="activeNavItem === item.id ? 'text-[#2F27CE] bg-[#2F27CE]/5 rounded-md' : 'text-gray-500'"
         >
@@ -196,7 +260,7 @@ const closeDropdown = () => {
       </ul>
       
       <!-- Mobile Auth Buttons - Guest State -->
-      <div v-if="navbarState === 'guest'" class="flex flex-col space-y-3">
+      <div v-if="effectiveNavbarState === 'guest'" class="flex flex-col space-y-3">
         <router-link to="/login" class="font-be-vietnam-pro bg-[#2F27CE] text-white font-bold px-6 py-3 rounded-md hover:bg-[#261fb3] transition-colors border border-[#2F27CE] text-center">
           Login
         </router-link>
@@ -206,10 +270,10 @@ const closeDropdown = () => {
       </div>
       
       <!-- Mobile Auth User View -->
-      <div v-else-if="navbarState === 'auth'" class="flex flex-col w-full">
+      <div v-else-if="effectiveNavbarState === 'auth'" class="flex flex-col w-full">
         <div class="flex items-center p-2 mb-4" @click="toggleDropdown">
           <div class="flex flex-col">
-            <span class="font-epilogue font-semibold text-black text-lg">{{ userName || 'Afyar Siti Ababil' }}</span>
+            <span class="font-epilogue font-semibold text-black text-lg">{{ userName }}</span>
             <span class="font-epilogue text-sm text-[#5D5FEF]">Selamat Datang!</span>
           </div>
           <div class="ml-auto flex items-center gap-2">
@@ -234,9 +298,12 @@ const closeDropdown = () => {
             <a href="#" class="px-4 py-3 text-base font-epilogue text-left text-gray-800 hover:bg-gray-100 transition-colors rounded-md mb-2">
               Bookmark
             </a>
-            <a href="#" class="px-4 py-3 text-base font-epilogue text-left text-[#FF6161] hover:bg-red-50 transition-colors rounded-md">
+            <button
+              @click="handleLogout" 
+              class="px-4 py-3 text-left text-base font-epilogue text-[#FF6161] hover:bg-red-50 transition-colors rounded-md"
+            >
               Keluar
-            </a>
+            </button>
           </div>
         </div>
       </div>

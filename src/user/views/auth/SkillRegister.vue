@@ -95,7 +95,7 @@ const displayedSkills = computed(() => {
 <template>
   <div class="min-h-screen flex flex-col font-be-vietnam-pro bg-white">
     <!-- Navbar with auth state -->
-    <Navbar navbarState="auth" />
+    <Navbar navbarState="register" />
     
     <!-- Main Content -->
     <main class="flex-grow flex flex-col items-center px-6 py-8 mt-15 max-w-screen-xl mx-auto w-full">

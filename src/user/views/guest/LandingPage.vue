@@ -6,8 +6,8 @@ import SearchJob from '../../components/SearchJob.vue';
 
 <template>
   <div class="min-h-screen flex flex-col">
-    <Navbar navbarState="guest" />
-    <main class="flex-grow">
+    <Navbar />
+    <main class="flex-grow bg-[#FCFCFF]">
       <SearchJob />
       <div class="flex flex-col md:flex-row items-center justify-center mt-10 gap-4 px-4 text-center md:text-left">
         <div class="flex gap-3 justify-center w-full md:w-auto">
