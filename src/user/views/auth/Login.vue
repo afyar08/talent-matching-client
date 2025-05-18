@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import Navbar from '../../components/Navbar.vue';
 import Footer from '../../components/Footer.vue';
+import Toaster from '../../../components/Toaster.vue';
 import { useRouter } from 'vue-router';
 import { setupDummyUser } from '../../../utils/setupDummyUser';
 import { setInStorage } from '../../../utils/localStorage';
@@ -12,9 +13,15 @@ const password = ref('');
 const errorMessage = ref('');
 const isLoading = ref(false);
 
+// Toaster state
+const toastVisible = ref(false);
+const toastType = ref('error');
+const toastMessage = ref('');
+
 const login = async () => {
   if (!email.value || !password.value) {
     errorMessage.value = 'Please fill in all fields';
+    showToast('error', 'Please fill in all fields');
     return;
   }
 
@@ -42,17 +49,31 @@ const login = async () => {
       setInStorage('user-token', dummyUser.token);
       setInStorage('token-expired-date', dummyUser.tokenExpiredDate);
 
-      // Successful login, navigate to home
-      router.push('/home');
+      // Show success toast
+      showToast('success', 'Login successful! Redirecting...');
+      
+      // Successful login, navigate to home after a short delay
+      setTimeout(() => {
+        router.push('/home');
+      }, 1500);
     } else {
       errorMessage.value = 'Invalid email or password';
+      showToast('error', 'Invalid email or password');
     }
   } catch (error) {
     errorMessage.value = 'An error occurred during login';
+    showToast('error', 'An error occurred during login');
     console.error('Login error:', error);
   } finally {
     isLoading.value = false;
   }
+};
+
+// Function to show toast
+const showToast = (type, message) => {
+  toastType.value = type;
+  toastMessage.value = message;
+  toastVisible.value = true;
 };
 </script>
 
@@ -60,6 +81,14 @@ const login = async () => {
   <div class="min-h-screen flex flex-col font-be-vietnam-pro bg-white">
     <!-- Navbar with register state -->
     <Navbar navbarState="register" />
+
+    <!-- Toast notification -->
+    <Toaster 
+      :type="toastType"
+      :message="toastMessage"
+      :visible="toastVisible"
+      @update:visible="toastVisible = $event"
+    />
 
     <!-- Main Content -->
     <main class="flex-grow flex">
@@ -106,8 +135,8 @@ const login = async () => {
               </div>
             </div>
 
-            <!-- Error Message -->
-            <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-4">
+            <!-- Error Message - Now hidden as we use toast instead -->
+            <div v-if="errorMessage && false" class="bg-red-50 border-l-4 border-red-500 p-4">
               <div class="text-red-700">{{ errorMessage }}</div>
             </div>
 
