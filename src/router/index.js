@@ -8,6 +8,7 @@ import Login from '../user/views/auth/Login.vue'
 import Register from '../user/views/auth/Register.vue'
 import DetailProfil from '../user/views/auth/DetailProfil.vue'
 import SkillRegister from '../user/views/auth/SkillRegister.vue'
+import LengkapiProfil from '../user/views/auth/LengkapiProfil.vue'
 import LandingPageUser from '../user/views/authenticated/LandingPage.vue'
 import JobSearchUser from '../user/views/authenticated/JobSearch.vue'
 import DetailJobUser from '../user/views/authenticated/DetailJob.vue'
@@ -54,6 +55,12 @@ const routes = [
     path: '/register/skill',
     name: 'skill-register',
     component: SkillRegister,
+    meta: { guestOnly: true }
+  },
+  {
+    path: '/register/lengkapi-profil',
+    name: 'lengkapi-profil',
+    component: LengkapiProfil,
     meta: { guestOnly: true }
   },
   {
@@ -114,6 +121,7 @@ const routes = [
   {
   path: '/admin',
   component: AdminLayout,
+  meta: { requiresAdmin: true }, // Add this meta property
   children: [
     {
       path: '',
@@ -183,6 +191,16 @@ router.beforeEach((to, from, next) => {
 
   // Check if user is authenticated
   const isAuthenticated = !!getFromStorage('user-id');
+  
+  // Check if user is an admin
+  const isAdmin = !!getFromStorage('admin-id');
+
+  // Logic for routes that require admin authentication
+  if (to.matched.some(record => record.meta.requiresAdmin)) {
+    if (!isAdmin) {
+      return next('/login'); // Redirect non-admins to login
+    }
+  }
 
   // Logic for routes that require authentication
   if (to.meta.requiresAuth) {
@@ -192,8 +210,9 @@ router.beforeEach((to, from, next) => {
   }
   
   // Logic for routes that should only be accessible to guests (not authenticated users)
-  if (to.meta.guestOnly && isAuthenticated) {
-    return next('/home'); // Redirect authenticated users to home
+  if (to.meta.guestOnly && (isAuthenticated || isAdmin)) {
+    // Redirect authenticated users to home and admins to admin dashboard
+    return isAdmin ? next('/admin') : next('/home');
   }
 
   // For all other routes, proceed as normal

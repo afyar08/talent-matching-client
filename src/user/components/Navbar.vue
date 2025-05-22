@@ -69,7 +69,7 @@ const determineActiveItem = computed(() => {
   if (route.path.includes('/recommendation')) {
     return 'rekomendasi';
   }
-  if (route.path === '/home' || route.path === '/home/job-search') {
+  if (route.path === '/home' || route.path === '/home/job-search' || route.path === '/' || route.path === '/job-search') {
     return 'jobs';
   }
   // Return null to indicate no active item when on other pages
@@ -98,7 +98,7 @@ const handleLogout = () => {
 };
 
 const toggleMobileMenu = () => {
-  isMobileMenuOpen.value = !isMobileMenuOpen.value;
+  isMobileMenuOpen.value = !isMobileMenu.value;
 };
 
 const toggleDropdown = () => {
@@ -124,8 +124,8 @@ const userName = computed(() => {
 </script>
 
 <template>
-  <nav class="w-full h-[70px] flex justify-center shadow-sm bg-white">
-    <div class="w-full max-w-[1440px] h-full flex items-center justify-between px-4 md:px-8 2xl:px-0">
+  <nav class="w-full h-[70px] flex justify-center bg-white shadow-[0_2px_10px_rgba(0,0,0,0.1)] border-b border-gray-100/60 z-10 relative">
+    <div class="w-full max-w-[1440px] bg-white h-full flex items-center justify-between px-4 md:px-8 2xl:px-0">
       <div class="flex items-center h-full">
         <!-- Logo - Updated to use image asset -->
         <div class="flex items-center mr-8">

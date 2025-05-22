@@ -51,31 +51,10 @@ export default {
       return titles[this.type];
     }
   },
-  watch: {
-    visible(newValue) {
-      if (newValue && this.duration > 0) {
-        this.setupAutoClose();
-      }
-    }
-  },
   methods: {
     closeToast() {
       this.$emit('update:visible', false);
-    },
-    setupAutoClose() {
-      if (this.timer) clearTimeout(this.timer);
-      this.timer = setTimeout(() => {
-        this.closeToast();
-      }, this.duration);
     }
-  },
-  data() {
-    return {
-      timer: null
-    };
-  },
-  beforeUnmount() {
-    if (this.timer) clearTimeout(this.timer);
   }
 }
 </script>

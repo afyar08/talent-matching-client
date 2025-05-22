@@ -6,15 +6,15 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-// Profile detail fields with default values
+// Profile detail fields with default values but will be disabled
 const fullName = ref('John Doe');
 const email = ref('johndoe@gmail.com');
 const imageFile = ref(null);
 const imagePreview = ref('https://randomuser.me/api/portraits/men/36.jpg');
 
-// Skills management with default values
+// Skills management with empty initial values
 const searchQuery = ref('');
-const selectedSkills = ref(['JavaScript', 'React', 'Node.js']);
+const selectedSkills = ref([]);
 const MAX_SKILLS = 100;
 const showDropdown = ref(false);
 
@@ -88,34 +88,27 @@ const displayedSkills = computed(() => {
 const initialValues = {
   fullName: 'John Doe',
   email: 'johndoe@gmail.com',
-  skills: ['JavaScript', 'React', 'Node.js'],
+  skills: [],
   imageUrl: 'https://randomuser.me/api/portraits/men/36.jpg'
 };
 
 // Check if any changes were made to the form
 const hasChanges = computed(() => {
-  // Check basic fields
-  if (fullName.value !== initialValues.fullName) return true;
-  if (email.value !== initialValues.email) return true;
+  // For this form, only profile image and skills can change
   if (imagePreview.value !== initialValues.imageUrl && imageFile.value !== null) return true;
   
-  // Check if skills were added or removed
-  if (selectedSkills.value.length !== initialValues.skills.length) return true;
-  
-  // Check if skill content changed
-  for (const skill of selectedSkills.value) {
-    if (!initialValues.skills.includes(skill)) return true;
-  }
+  // Check if skills were added (since we start with empty skills)
+  if (selectedSkills.value.length > 0) return true;
   
   return false;
 });
 
-// Function to handle "Kembali" button click
+// Navigation handling
 const goBack = () => {
-  router.push('/home');
+  router.push('/login');
 };
 
-// Final submission - update to reload page instead of redirecting
+// Form submission
 const submitForm = () => {
   if (selectedSkills.value.length === 0) {
     alert('Please select at least one skill');
@@ -130,34 +123,31 @@ const submitForm = () => {
     skills: selectedSkills.value
   });
   
-  // If changes were made, reload the page to show updated data
-  if (hasChanges.value) {
-    // Reload current page instead of redirecting
-    window.location.reload();
-  }
+  // Redirect to home after completing profile
+  router.push('/home');
 };
 </script>
 
 <template>
   <div class="min-h-screen flex flex-col font-be-vietnam-pro bg-white">
-    <Navbar />
+    <Navbar navbarState="register" />
     
     <main class="flex-grow flex flex-col items-center px-6 py-8 mt-8 max-w-screen-xl mx-auto w-full">
       <!-- Header -->
       <div class="text-center mb-6 w-full">
         <h1 class="text-5xl font-bold">
-          <span class="text-[#2F27CE]">Profile</span> Information
+          <span class="text-[#2F27CE]">Lengkapi</span> Profil
         </h1>
       </div>
       
-      <!-- Combined Form Section - Increased width -->
+      <!-- Combined Form Section -->
       <div class="w-full bg-white rounded-lg p-6 md:p-8 pt-5 max-w-6xl mx-auto">
         <form @submit.prevent="submitForm">
           <!-- Detail Profile Section -->
           <div>
             <div class="mb-6">
               <h2 class="text-lg font-bold text-[#2D3648]">Detail Profil</h2>
-              <p class="text-gray-500 text-sm">Informasi pribadi wajib diisi dan dapat diubah kapan saja</p>
+              <p class="text-gray-500 text-sm">Informasi pribadi dari proses registrasi</p>
             </div>
             
             <div class="border-t border-gray-200 my-6"></div>
@@ -191,7 +181,7 @@ const submitForm = () => {
                       <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
                     </svg>
                     <div>
-                      <span class="text-[#4745F6] hover:underline">Click to replace</span>
+                      <span class="text-[#4745F6] hover:underline">Click to upload</span>
                     </div>
                     <p class="text-xs text-gray-400 mt-1">SVG, PNG, JPG or GIF (max. 400 x 400px)</p>
                   </div>
@@ -199,9 +189,9 @@ const submitForm = () => {
               </div>
             </div>
             
-            <!-- Form Fields -->
+            <!-- Form Fields - Disabled for Full Name and Email -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <!-- Full Name -->
+              <!-- Full Name - Disabled -->
               <div>
                 <label for="fullName" class="block text-sm font-medium text-gray-700 mb-1">
                   Full Name
@@ -211,14 +201,14 @@ const submitForm = () => {
                   v-model="fullName"
                   type="text"
                   placeholder="Enter your full name"
-                  class="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#4745F6] focus:border-[#4745F6]"
-                  required
+                  class="w-full px-4 py-2.5 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
+                  disabled
                 />
               </div>
               
-              <!-- Email -->
+              <!-- Email - Disabled -->
               <div>
-                <label for="email" class="blocktext-sm font-medium text-gray-700 mb-1">
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
                   Email
                 </label>
                 <input
@@ -226,7 +216,8 @@ const submitForm = () => {
                   v-model="email"
                   type="email"
                   placeholder="Enter your email"
-                  class="w-full px-4 py-2.5 border border-gray-300 rounded-md"
+                  class="w-full px-4 py-2.5 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
+                  disabled
                 />
               </div>
             </div>
@@ -326,10 +317,9 @@ const submitForm = () => {
             
             <button
               type="submit"
-              class="bg-[#2F27CE] text-white font-medium py-2.5 px-8 rounded-md hover:bg-[#3d3bd4] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-              :disabled="!hasChanges"
+              class="bg-[#2F27CE] text-white font-medium py-2.5 px-8 rounded-md hover:bg-[#3d3bd4] transition-colors"
             >
-              Simpan Perubahan
+              Simpan
             </button>
           </div>
         </form>

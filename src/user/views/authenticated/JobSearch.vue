@@ -90,7 +90,7 @@ onMounted(() => {
 <template>
   <div class="min-h-screen flex flex-col">
     <Navbar navbarState="auth" />
-    <main class="flex-grow">
+    <main class="flex-grow bg-[#FCFCFF]">
       <SearchJob />
       
       <div class="max-w-[1440px] mx-auto px-4 md:px-8 2xl:px-0 my-8 flex flex-col md:flex-row gap-6 items-start">

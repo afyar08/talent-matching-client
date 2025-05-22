@@ -7,7 +7,7 @@ import SearchJob from '../../components/SearchJob.vue';
 <template>
   <div class="min-h-screen flex flex-col">
     <Navbar />
-    <main class="flex-grow">
+    <main class="flex-grow bg-[#FCFCFF]">
       <SearchJob />
     </main>
     <Footer />
