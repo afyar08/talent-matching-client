@@ -53,7 +53,7 @@ const formatSalary = (min, max) => {
     <div class="min-h-screen flex flex-col font-be-vietnam-pro">
         <Navbar navbarState="guest" />
 
-        <main class="flex-grow bg-[FCFCFF]">
+        <main class="flex-grow bg-[#FCFCFF]">
             <!-- Job Header Section - Updated with margins to create floating effect -->
             <div class="max-w-[1200px] mx-auto px-4 md:px-8 2xl:px-0 pt-8">
                 <div class="bg-[#4745F6] text-white py-10 px-6 md:px-10 rounded-xl shadow-md w-[1196px] h-[439px] flex flex-col justify-center">

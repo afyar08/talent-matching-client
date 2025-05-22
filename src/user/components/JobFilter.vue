@@ -420,7 +420,7 @@ const clearFilters = () => {
                 :value="option.id"
                 class="form-radio h-4 w-4 text-[#2F27CE] border-gray-300 focus:ring-[#2F27CE]"
               />
-              <label :for="option.id" class="ml-2 text-sm">{{ option.label }}</label>
+              <label :for="option.id" class="ml-2 text-md">{{ option.label }}</label>
             </div>
           </div>
         </div>
@@ -515,7 +515,7 @@ const clearFilters = () => {
                 :value="option.id"
                 class="form-checkbox h-4 w-4 text-[#2F27CE] rounded border-gray-300 focus:ring-[#2F27CE]"
               />
-              <label :for="option.id" class="ml-2 text-sm">{{ option.label }}</label>
+              <label :for="option.id" class="ml-2 text-md">{{ option.label }}</label>
             </div>
           </div>
         </div>

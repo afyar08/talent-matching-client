@@ -20,7 +20,7 @@ const bookmarkFilters = ref({
 <template>
   <div class="min-h-screen flex flex-col">
     <Navbar />
-    <main class="flex-grow">
+    <main class="flex-grow bg-[#FCFCFF]">
       <!-- Bookmark header section -->
       <section class="bg-[#FCFCFF] pt-9 pb-6">
         <div class="max-w-[1440px] mx-auto px-4 md:px-8 2xl:px-0">

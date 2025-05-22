@@ -3,8 +3,8 @@
 </script>
 
 <template>
-  <footer class="w-full mt-5">
-    <div class="max-w-[1440px] mx-auto px-4 md:px-16 w-full flex items-start">
+  <footer class="w-full bg-[#FCFCFF]">
+    <div class="max-w-[1440px] mx-auto mb-8 mt-5 px-4 md:px-16 w-full flex items-start">
       <div class="border-t border-gray-200 w-full pt-4 pb-10">
         <p class="text-gray-500 text-sm font-epilogue text-left mt-6">
           2025 @ KoTA 203. All rights reserved.

@@ -152,7 +152,7 @@ const matchBars = computed(() => {
     <div class="min-h-screen flex flex-col font-be-vietnam-pro">
         <Navbar />
 
-        <main class="flex-grow bg-[FCFCFF]">
+        <main class="flex-grow bg-[#FCFCFF]">
             <!-- Job Header Section - Updated with margins to create floating effect -->
             <div class="max-w-[1200px] mx-auto px-4 md:px-8 2xl:px-0 pt-8">
                 <div
