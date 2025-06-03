@@ -5,6 +5,7 @@ import { jobService } from '../../../services/jobService.js';
 import { bookmarkService } from '../../../services/bookmarkService.js';
 import { getFromStorage } from '../../../utils/localStorage.js';
 import { reportService } from '../../../services/reportService.js';
+import { toastService } from '../../../utils/toastService.js'; // Add import for toast service
 import Navbar from '../../components/Navbar.vue';
 import Footer from '../../components/Footer.vue';
 
@@ -163,10 +164,12 @@ const formatSalary = (min, max) => {
 const showReportModal = ref(false);
 const reportReason = ref('');
 const reportComment = ref('');
+const reportReasonError = ref(false); // Add error state tracking
 
 // Function to open report modal
 const reportJob = () => {
     showReportModal.value = true;
+    reportReasonError.value = false; // Reset error state when opening modal
 };
 
 // Function to close report modal
@@ -174,21 +177,44 @@ const closeReportModal = () => {
     showReportModal.value = false;
     reportReason.value = '';
     reportComment.value = '';
+    reportReasonError.value = false; // Reset error state when closing modal
 };
+
+// Watch for reason selection to clear error
+watch(() => reportReason.value, (newValue) => {
+    if (newValue) {
+        reportReasonError.value = false;
+    }
+});
 
 // Function to submit report
 const submitReport = async () => {
+    // Validate if reason is selected
+    if (!reportReason.value) {
+        reportReasonError.value = true;
+        return;
+    }
+
     try {
         await reportService.sendReport({
             job_url: job.value.job_url,
             reportType: reportReason.value,
             reportDescriptions: reportComment.value
         });
-        // Show success message or handle response
-        alert('Laporan berhasil dikirim!');
+        
+        // Show success toast notification instead of alert
+        toastService.show({
+            type: 'success',
+            message: 'Terima Kasih Sudah Melaporkan'
+        });
+        
         closeReportModal();
     } catch (error) {
-        alert('Gagal mengirim laporan!');
+        // Use toast for error message as well
+        toastService.show({
+            type: 'error',
+            message: 'Gagal mengirim laporan'
+        });
         console.error(error);
     }
 };
@@ -517,6 +543,11 @@ const matchTextColor = computed(() => {
                             <input type="radio" id="reason-6" v-model="reportReason" value="other" class="mr-2 h-4 w-4">
                             <label for="reason-6">Lainnya</label>
                         </div>
+                        
+                        <!-- Add error message -->
+                        <div v-if="reportReasonError" class="text-red-500 text-sm font-medium mt-1">
+                            *Alasan Wajib di Isi
+                        </div>
                     </div>
                 </div>
                 
@@ -536,7 +567,6 @@ const matchTextColor = computed(() => {
                 <button 
                     @click="submitReport" 
                     class="bg-[#2F27CE] text-white px-4 py-2 rounded font-semibold hover:bg-[#261fb3]"
-                    :disabled="!reportReason"
                 >
                     Simpan
                 </button>

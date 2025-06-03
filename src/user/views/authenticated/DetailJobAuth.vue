@@ -5,7 +5,9 @@ import { jobService } from '../../../services/jobService.js';
 import { bookmarkService } from '../../../services/bookmarkService.js';
 import { getFromStorage } from '../../../utils/localStorage.js';
 import { reportService } from '../../../services/reportService.js';
-import { toastService } from '../../../utils/toastService.js'; // Add import for toast service
+import { toastService } from '../../../utils/toastService.js'; 
+import Navbar from '../../components/Navbar.vue';
+import Footer from '../../components/Footer.vue';
 
 // Get route to access query parameters
 const route = useRoute();
