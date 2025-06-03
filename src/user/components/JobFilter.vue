@@ -272,7 +272,7 @@ const updateSortOptions = () => {
   }
 };
 
-// Apply filters - UPDATE DENGAN FORCE RELOAD
+// Apply filters with improved synchronization and special handling for recommendation pages
 const applyFilters = async () => {
   const isSalaryRangeValid = checkSalaryValidity();
   
@@ -281,61 +281,96 @@ const applyFilters = async () => {
     return;
   }
   
+  // Create a consistent filter state object to use for both URL and events
+  const filterState = {
+    ...JSON.parse(JSON.stringify(selectedFilters.value)) // Deep clone to prevent reference issues
+  };
+  
   const { job, location } = route.query;
   const orderedQuery = {};
   
-  if (selectedFilters.value.sortOrder) {
-    orderedQuery.sortOrder = selectedFilters.value.sortOrder;
+  if (filterState.sortOrder) {
+    orderedQuery.sortOrder = filterState.sortOrder;
   }
   
   if (job) orderedQuery.job = job;
   if (location) orderedQuery.location = location;
   
-  if (selectedFilters.value.salaryMin) {
-    orderedQuery.salaryMin = selectedFilters.value.salaryMin;
+  if (filterState.salaryMin) {
+    orderedQuery.salaryMin = filterState.salaryMin;
   }
-  if (selectedFilters.value.salaryMax) {
-    orderedQuery.salaryMax = selectedFilters.value.salaryMax;
-  }
-  
-  // Process array values - gunakan value dari backend, bukan id
-  if (selectedFilters.value.jobTypes.length > 0) {
-    orderedQuery.jobTypes = selectedFilters.value.jobTypes.join(',');
+  if (filterState.salaryMax) {
+    orderedQuery.salaryMax = filterState.salaryMax;
   }
   
-  if (selectedFilters.value.workArrangements.length > 0) {
-    orderedQuery.workArrangements = selectedFilters.value.workArrangements.join(',');
+  // Process array values consistently
+  if (filterState.jobTypes.length > 0) {
+    orderedQuery.jobTypes = filterState.jobTypes.join(',');
   }
   
-  if (selectedFilters.value.experiences.length > 0) {
-    orderedQuery.experiences = selectedFilters.value.experiences.join(',');
+  if (filterState.workArrangements.length > 0) {
+    orderedQuery.workArrangements = filterState.workArrangements.join(',');
   }
   
-  if (selectedFilters.value.educationLevels.length > 0) {
-    orderedQuery.educationLevels = selectedFilters.value.educationLevels.join(',');
+  if (filterState.experiences.length > 0) {
+    orderedQuery.experiences = filterState.experiences.join(',');
   }
   
-  console.log('🔄 Applying filters with query:', orderedQuery);
+  if (filterState.educationLevels.length > 0) {
+    orderedQuery.educationLevels = filterState.educationLevels.join(',');
+  }
   
-  // Update URL
-  router.replace({
-    path: route.path,
-    query: orderedQuery
-  });
+  console.log(`🔄 Applying filters on ${props.isRecommendationPage ? 'RECOMMENDATION' : 'REGULAR'} page:`, orderedQuery);
   
-  // Emit filter change
-  emit('filter-change', selectedFilters.value);
-  
-  // Force reload JobList component
-  emit('force-reload');
-  
-  console.log('✅ Filter applied and JobList reload triggered');
+  try {
+    // First emit the change event so parent components can prepare
+    emit('filter-change', filterState);
+    
+    // Then update URL - use await to ensure it completes
+    await router.replace({
+      path: route.path,
+      query: orderedQuery
+    });
+    
+    // Use longer timeout for recommendation page to ensure data is loaded properly
+    const timeoutMs = props.isRecommendationPage ? 100 : 50;
+    
+    // Finally force reload after URL is updated
+    setTimeout(() => {
+      // Double-check that filter state matches URL query before forcing reload
+      const currentQuery = route.query;
+      let filtersMatch = true;
+      
+      // Check if current URL matches our expected filters
+      if (currentQuery.sortOrder !== orderedQuery.sortOrder) {
+        console.warn('Sort order mismatch between expected and actual URL');
+        filtersMatch = false;
+      }
+      
+      // If on recommendation page and filters don't match, try once more
+      if (props.isRecommendationPage && !filtersMatch) {
+        console.warn('Filter mismatch detected on recommendation page, retrying...');
+        setTimeout(() => {
+          emit('force-reload');
+          console.log('🔄 Retry: Filter reload triggered for recommendation page');
+        }, 150);
+      } else {
+        emit('force-reload');
+        console.log(`✅ Filter applied and ${props.isRecommendationPage ? 'RECOMMENDATION' : 'REGULAR'} JobList reload triggered`);
+      }
+    }, timeoutMs);
+  } catch (error) {
+    console.error('Error applying filters:', error);
+    // Force reload even on error to ensure consistency
+    setTimeout(() => emit('force-reload'), 200);
+  }
 };
 
-// Clear filters - UPDATE DENGAN FORCE RELOAD
+// Clear filters with improved synchronization
 const clearFilters = async () => {
-  selectedFilters.value = {
-    sortOrder: 'descending',
+  // Define default filter state based on current page type
+  const defaultFilters = {
+    sortOrder: props.isRecommendationPage ? 'similarity-desc' : 'descending',
     salaryMin: '',
     salaryMax: '',
     jobTypes: [],
@@ -344,22 +379,37 @@ const clearFilters = async () => {
     educationLevels: []
   };
   
+  // Apply defaults to selected filters
+  selectedFilters.value = { ...defaultFilters };
+  
   const { job, location } = route.query;
   const orderedQuery = {};
   if (job) orderedQuery.job = job;
   if (location) orderedQuery.location = location;
   
-  console.log('🗑️ Clearing filters...');
+  // Add the default sort order to query
+  orderedQuery.sortOrder = defaultFilters.sortOrder;
   
-  router.push({
-    path: route.path,
-    query: orderedQuery
-  });
+  console.log('🗑️ Clearing filters to defaults:', defaultFilters);
   
-  emit('filter-change', selectedFilters.value);
-  emit('force-reload');
-  
-  console.log('✅ Filters cleared and JobList reload triggered');
+  try {
+    // First emit the change event
+    emit('filter-change', defaultFilters);
+    
+    // Then update URL - use await to ensure it completes
+    await router.push({
+      path: route.path,
+      query: orderedQuery
+    });
+    
+    // Finally force reload after URL is updated
+    setTimeout(() => {
+      emit('force-reload');
+      console.log('✅ Filters cleared and JobList reload triggered');
+    }, 50);
+  } catch (error) {
+    console.error('Error clearing filters:', error);
+  }
 };
 
 // Toggle section
@@ -392,27 +442,44 @@ watch(() => selectedFilters.value.salaryMax, (newVal) => {
 });
 
 watch(() => route.query, (newQuery) => {
+  console.log('📌 Route query changed:', newQuery);
   updateFiltersFromQuery(newQuery);
+  
+  // Force radio buttons to update by reassigning sortOrder
+  // This fixes potential sync issues with the radio buttons not reflecting URL state
+  if (newQuery.sortOrder) {
+    setTimeout(() => {
+      selectedFilters.value.sortOrder = newQuery.sortOrder;
+    }, 0);
+  }
 }, { immediate: true, deep: true });
 
-// Watch untuk props change - UPDATE untuk set default yang benar
+// Watch untuk props change - UPDATE untuk respek URL parameter
 watch(() => props.isRecommendationPage, (newValue) => {
   updateSortOptions();
-  // Reset sort order when page type changes
-  if (newValue) {
-    selectedFilters.value.sortOrder = 'similarity-desc'; // Default Descending untuk recommendation
-  } else {
-    selectedFilters.value.sortOrder = 'descending'; // Default Descending untuk job search
+  
+  // Only set default if no URL parameter exists
+  if (!route.query.sortOrder) {
+    // Reset sort order when page type changes only if no URL parameter
+    if (newValue) {
+      selectedFilters.value.sortOrder = 'similarity-desc'; // Default Descending untuk recommendation
+    } else {
+      selectedFilters.value.sortOrder = 'descending'; // Default Descending untuk job search
+    }
   }
 }, { immediate: true });
 
-// Lifecycle - UPDATE untuk ensure default setting
+// Lifecycle - UPDATE untuk prioritas URL parameter
 onMounted(async () => {
   updateSortOptions();
   await loadFilterOptions();
   
-  // Ensure default sort order is set correctly after mount
-  if (props.isRecommendationPage && !route.query.sortOrder) {
+  // Ensure URL parameter takes precedence
+  if (route.query.sortOrder) {
+    selectedFilters.value.sortOrder = route.query.sortOrder;
+    console.log('Setting sort order from URL:', route.query.sortOrder);
+  } else if (props.isRecommendationPage) {
+    // Only set default if no URL parameter
     selectedFilters.value.sortOrder = 'similarity-desc';
   }
 });
