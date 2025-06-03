@@ -92,6 +92,11 @@ const handleLogout = () => {
   removeFromStorage('user-name');
   removeFromStorage('user-token');
   removeFromStorage('token-expired-date');
+  removeFromStorage('user-profile-picture');
+  removeFromStorage('user-email');
+  removeFromStorage('user-refresh-token');
+  removeFromStorage('user-role');
+
   
   closeDropdown();
   router.push('/');
@@ -117,9 +122,47 @@ const handleNavItemClick = (item) => {
   }
 };
 
-// User name with safer localStorage access
+// User name with safer localStorage access - Update untuk prioritas localStorage
 const userName = computed(() => {
-  return props.userName || getFromStorage('user-name') || 'Afyar Siti Ababil';
+  return props.userName || getFromStorage('user-name') || 'User';
+});
+
+// User avatar computed property - Update untuk handle profile picture dengan fallback
+const userAvatar = computed(() => {
+  // Priority: props > localStorage > default
+  if (props.userAvatar) return props.userAvatar;
+  
+  const storedProfilePicture = getFromStorage('user-profile-picture');
+  if (storedProfilePicture && storedProfilePicture !== 'null') {
+    console.log('Using stored profile picture:', storedProfilePicture);
+    return storedProfilePicture;
+  }
+  
+  // Return null to use default avatar
+  return null;
+});
+
+// Test profile picture accessibility
+const testProfilePicture = async () => {
+  const profileUrl = userAvatar.value;
+  if (profileUrl) {
+    try {
+      const response = await fetch(profileUrl);
+      if (!response.ok) {
+        console.log('Profile picture not accessible, clearing from storage');
+        removeFromStorage('user-profile-picture');
+      }
+    } catch (error) {
+      console.log('Error accessing profile picture:', error);
+      removeFromStorage('user-profile-picture');
+    }
+  }
+};
+
+onMounted(() => {
+  if (userAvatar.value) {
+    testProfilePicture();
+  }
 });
 </script>
 
@@ -171,12 +214,19 @@ const userName = computed(() => {
       <div v-else-if="effectiveNavbarState === 'auth'" class="hidden md:flex items-center gap-3 cursor-pointer relative">
         <div class="flex items-center gap-3" @click="toggleDropdown">
           <div class="flex flex-col">
-            <span class="font-epilogue font-semibold text-black text-lg">{{ userName }}</span>
+            <span class="font-epilogue font-semibold text-black text-right text-lg">{{ userName }}</span>
             <span class="font-epilogue font-semibold text-right text-sm text-[#5D5FEF]">Selamat Datang!</span>
           </div>
           <div class="flex items-center gap-2">
             <div class="w-12 h-12 rounded-full overflow-hidden">
-              <img v-if="userAvatar" :src="userAvatar" alt="User Profile" class="w-full h-full object-cover" />
+              <img 
+                v-if="userAvatar" 
+                :src="userAvatar" 
+                alt="User Profile" 
+                class="w-full h-full object-cover"
+                @error="$event.target.src = 'https://i.pravatar.cc/100'"
+                @load="console.log('Profile picture loaded successfully')"
+              />
               <div v-else class="w-full h-full bg-gray-100 flex items-center justify-center">
                 <img src="https://i.pravatar.cc/100" alt="Default profile" class="w-full h-full object-cover">
               </div>
@@ -278,7 +328,13 @@ const userName = computed(() => {
           </div>
           <div class="ml-auto flex items-center gap-2">
             <div class="w-12 h-12 rounded-full overflow-hidden">
-              <img v-if="userAvatar" :src="userAvatar" alt="User Profile" class="w-full h-full object-cover" />
+              <img 
+                v-if="userAvatar" 
+                :src="userAvatar" 
+                alt="User Profile" 
+                class="w-full h-full object-cover"
+                @error="$event.target.src = 'https://i.pravatar.cc/100'"
+              />
               <div v-else class="w-full h-full bg-gray-100 flex items-center justify-center">
                 <img src="https://i.pravatar.cc/100" alt="Default profile" class="w-full h-full object-cover">
               </div>

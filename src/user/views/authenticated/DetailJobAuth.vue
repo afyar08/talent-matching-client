@@ -5,6 +5,7 @@ import { jobService } from '../../../services/jobService.js';
 import { bookmarkService } from '../../../services/bookmarkService.js';
 import { getFromStorage } from '../../../utils/localStorage.js';
 import { reportService } from '../../../services/reportService.js';
+
 import Navbar from '../../components/Navbar.vue';
 import Footer from '../../components/Footer.vue';
 
@@ -57,14 +58,12 @@ const fetchJobData = async () => {
     // Update job state with fetched data
     job.value = {
       ...jobData,
-      // UBAH: Gunakan data dari URL langsung
-      similarity_score: route.query.similarity ? parseFloat(route.query.similarity) : 0.4,
-      match_type: route.query.matchType || 'mid'
+      // Keep similarity data if coming from recommendation
+      similarity_score: route.query.similarity ? parseFloat(route.query.similarity) : (jobData.similarity_score || 0),
+      match_type: route.query.matchType || jobData.match_type || 'mid'
     };
     
     console.log('✅ Job data loaded:', job.value);
-    console.log('🔗 URL similarity:', route.query.similarity);
-    console.log('🔗 URL matchType:', route.query.matchType);
     
     // Check bookmark status if user is authenticated
     if (isAuthenticated.value && job.value.job_url) {
@@ -130,16 +129,6 @@ watch(() => route.query.id, (newId) => {
     fetchJobData();
   }
 });
-
-// TAMBAH: Watch untuk perubahan similarity dan matchType di URL
-watch(() => [route.query.similarity, route.query.matchType], ([newSimilarity, newMatchType]) => {
-  if (job.value && !isLoading.value) {
-    job.value.similarity_score = newSimilarity ? parseFloat(newSimilarity) : 0.4;
-    job.value.match_type = newMatchType || 'mid';
-    console.log('🔄 Updated similarity_score:', job.value.similarity_score);
-    console.log('🔄 Updated match_type:', job.value.match_type);
-  }
-}, { immediate: true });
 
 // Format salary from number to display format
 const formatSalary = (min, max) => {
@@ -207,65 +196,6 @@ watch(() => showReportModal.value, (isShowing) => {
 // Make sure to restore scrolling if component is unmounted while modal is open
 onUnmounted(() => {
   document.body.style.overflow = '';
-});
-
-// Computed property to format similarity score as percentage
-const matchPercentage = computed(() => {
-  return Math.round(job.value.similarity_score * 100) + '%';
-});
-
-// Computed property to get match text based on match_type
-const matchText = computed(() => {
-  switch(job.value.match_type) {
-    case 'Weak':
-      return 'Kurang Match';
-    case 'Mid':
-      return 'Cukup Match';
-    case 'Strong':
-      return 'Sangat Match';
-    default:
-      return 'Cukup Match';
-  }
-});
-
-// Computed property to determine bar colors based on match_type
-const matchBars = computed(() => {
-  // Default to all gray bars
-  let bars = ['bg-gray-200', 'bg-gray-200', 'bg-gray-200'];
-  
-  switch(job.value.match_type) {
-    case 'Weak':
-      // Only first bar is active (red)
-      bars[0] = 'bg-red-400';
-      break;
-    case 'Mid':
-      // First two bars are active (orange)
-      bars[0] = 'bg-orange-400';
-      bars[1] = 'bg-orange-400';
-      break;
-    case 'Strong':
-      // All three bars are active (green)
-      bars[0] = 'bg-green-400';
-      bars[1] = 'bg-green-400';
-      bars[2] = 'bg-green-400';
-      break;
-  }
-  
-  return bars;
-});
-
-// TAMBAH: Computed property untuk warna text yang sesuai dengan bar
-const matchTextColor = computed(() => {
-  switch(job.value.match_type) {
-    case 'Weak':
-      return 'text-red-400'; // Red text untuk weak
-    case 'Mid':
-      return 'text-orange-400'; // Orange text untuk mid
-    case 'Strong':
-      return 'text-green-400'; // Green text untuk strong
-    default:
-      return 'text-orange-400'; // Default orange
-  }
 });
 </script>
 
@@ -382,9 +312,8 @@ const matchTextColor = computed(() => {
                             Link Sumber
                         </a>
 
-                        <!-- Bookmark Button - Only show if authenticated -->
+                        <!-- Bookmark Button -->
                         <button 
-                            v-if="isAuthenticated"
                             @click="toggleBookmark" 
                             class="flex items-center gap-2 bg-[#3042DF] text-white font-semibold py-2 px-6 rounded-md hover:bg-[#2735b3] transition-colors"
                         >
@@ -422,31 +351,6 @@ const matchTextColor = computed(() => {
 
                         <!-- Right Column: Skills and Match Info -->
                         <div class="md:col-span-1">
-                            <!-- Talent Match Card - Only show if from recommendation -->
-                            <div v-if="isFromRecommendation" class="bg-white rounded-lg shadow-md p-6 mb-6">
-                                <h3 class="text-xl font-bold text-[#1E1E1E] mb-4">Talent Match</h3>
-                                
-                                <!-- Skill Match Percentage with Progress Bar -->
-                                <div class="mb-4">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <p class="font-bold text-md text-[#5952D8]">{{ matchPercentage }} Skill Match</p>
-                                    </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                        <div class="bg-[#5952D8] h-2.5 rounded-full" :style="{ width: matchPercentage }"></div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Match Type with 3 Bars -->
-                                <div>
-                                    <!-- UPDATE: Gunakan dynamic color class -->
-                                    <p :class="['font-bold text-md mb-1', matchTextColor]">{{ matchText }}</p>
-                                    <div class="flex gap-2">
-                                        <div :class="[matchBars[0], 'h-2.5 rounded-full flex-1']"></div>
-                                        <div :class="[matchBars[1], 'h-2.5 rounded-full flex-1']"></div>
-                                        <div :class="[matchBars[2], 'h-2.5 rounded-full flex-1']"></div>
-                                    </div>
-                                </div>
-                            </div>
                             
                             <!-- Skills Tags -->
                             <div class="bg-white rounded-lg shadow-md p-6 mb-6">

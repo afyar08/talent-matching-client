@@ -9,7 +9,7 @@ import JobFilter from '../../components/JobFilter.vue';
 // Get route to access query parameters
 const route = useRoute();
 
-// State to hold current filters
+// State to hold current filters - ADD sortOrder with default for similarity
 const currentFilters = ref({
   salaryMin: '',
   salaryMax: '',
@@ -18,7 +18,8 @@ const currentFilters = ref({
   experiences: [],
   educationLevels: [],
   job: '',
-  location: ''
+  location: '',
+  sortOrder: 'similarity-desc' // Default to highest similarity first
 });
 
 // State to track if mobile filter is shown
@@ -30,6 +31,10 @@ const handleFilterChange = (filters) => {
   filters.job = currentFilters.value.job;
   filters.location = currentFilters.value.location;
   currentFilters.value = filters;
+
+  setTimeout(() => {
+    window.location.reload();
+  }, 100);
 };
 
 // Toggle mobile filter visibility
@@ -58,6 +63,20 @@ const initializeFilters = (query) => {
   }
   if (query.salaryMax) {
     currentFilters.value.salaryMax = query.salaryMax;
+  }
+  
+  // Set sort order - MAP to similarity-based sorting for recommendations
+  if (query.sortOrder) {
+    // Convert from job-search sorting to recommendation sorting
+    if (query.sortOrder === 'descending') {
+      currentFilters.value.sortOrder = 'similarity-desc';
+    } else if (query.sortOrder === 'ascending') {
+      currentFilters.value.sortOrder = 'similarity-asc';
+    } else {
+      currentFilters.value.sortOrder = query.sortOrder;
+    }
+  } else {
+    currentFilters.value.sortOrder = 'similarity-desc'; // Default for recommendations
   }
   
   // Set array-based filters if present in URL
@@ -128,13 +147,15 @@ onMounted(() => {
                 </svg>
               </button>
             </div>
-            <JobFilter @filter-change="handleFilterChange" />
+            <!-- Pass isRecommendationPage prop -->
+            <JobFilter @filter-change="handleFilterChange" :isRecommendationPage="true" />
           </div>
         </div>
         
         <!-- Left column: Filters (hidden on mobile) -->
         <aside class="hidden md:block md:sticky md:top-4">
-          <JobFilter @filter-change="handleFilterChange" />
+          <!-- Pass isRecommendationPage prop -->
+          <JobFilter @filter-change="handleFilterChange" :isRecommendationPage="true" />
         </aside>
         
         <!-- Right column: Job List -->

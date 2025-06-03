@@ -1,10 +1,10 @@
 <script setup>
-import { ref } from 'vue';
-import Navbar from '../../components/Navbar.vue';
-import Footer from '../../components/Footer.vue';
-import JobList from '../../components/JobList.vue';
+import { ref } from 'vue'
+import Navbar from '../../components/Navbar.vue'
+import Footer from '../../components/Footer.vue'
+import JobList from '../../components/JobList.vue'
 
-// Dummy bookmark filters (can be empty since we're only showing bookmarked jobs)
+// Empty filters since we're only showing bookmarked jobs
 const bookmarkFilters = ref({
   salaryMin: '',
   salaryMax: '',
@@ -14,7 +14,7 @@ const bookmarkFilters = ref({
   educationLevels: [],
   job: '',
   location: ''
-});
+})
 </script>
 
 <template>
@@ -35,7 +35,7 @@ const bookmarkFilters = ref({
         </div>
       </section>
       
-      <!-- Center the job list with a narrower max-width -->
+      <!-- Center the job list -->
       <div class="max-w-7xl mx-auto px-4 md:px-8 2xl:px-0 my-0">
         <!-- JobList with bookmarkedOnly flag -->
         <JobList :filters="bookmarkFilters" :bookmarked-only="true" />

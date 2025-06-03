@@ -1,13 +1,12 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import Navbar from '../../components/Navbar.vue';
-import Footer from '../../components/Footer.vue';
-import SearchJob from '../../components/SearchJob.vue';
-import JobList from '../../components/JobList.vue';
 import JobFilter from '../../components/JobFilter.vue';
+import JobList from '../../components/JobList.vue';
+import SearchJob from '../../components/SearchJob.vue';
+import Footer from '../../components/Footer.vue';
 
-// Get route to access query parameters
 const route = useRoute();
 
 // State to hold current filters
@@ -19,18 +18,44 @@ const currentFilters = ref({
   experiences: [],
   educationLevels: [],
   job: '',
-  location: ''
+  location: '',
+  sortOrder: 'descending'
 });
 
 // State to track if mobile filter is shown
 const showMobileFilter = ref(false);
+
+// Force reload key untuk trigger JobList refresh
+const jobListKey = ref(0);
 
 // Handle filter changes from JobFilter component
 const handleFilterChange = (filters) => {
   // Preserve search terms when applying other filters
   filters.job = currentFilters.value.job;
   filters.location = currentFilters.value.location;
-  currentFilters.value = filters;
+  currentFilters.value = { ...filters };
+};
+
+// Handle search changes from SearchJob component
+const handleSearchChange = (searchData) => {
+  currentFilters.value.job = searchData.job;
+  currentFilters.value.location = searchData.location;
+  
+  // Force reload JobList when search changes
+  jobListKey.value++;
+};
+
+// Handle force reload dari filter
+const handleForceReload = async () => {
+  console.log('🔄 Force reloading JobList...');
+  
+  // Wait for DOM update
+  await nextTick();
+  
+  // Increment key to force re-render JobList component
+  jobListKey.value++;
+  
+  console.log('✅ JobList force reload triggered');
 };
 
 // Toggle mobile filter visibility
@@ -40,48 +65,41 @@ const toggleMobileFilter = () => {
 
 // Initialize filters from URL query parameters
 const initializeFilters = (query) => {
-  // Set search terms (job and location) - Vue Router already decodes them
+  // Set search terms
   if (query.job && query.job !== 'all') {
     currentFilters.value.job = query.job;
   } else {
     currentFilters.value.job = '';
   }
-  
+
   if (query.location && query.location !== 'all') {
     currentFilters.value.location = query.location;
   } else {
     currentFilters.value.location = '';
   }
+
+  // Set filter values
+  currentFilters.value.sortOrder = query.sortOrder || 'descending';
+  currentFilters.value.salaryMin = query.salaryMin || '';
+  currentFilters.value.salaryMax = query.salaryMax || '';
   
-  // Set salary filters if present in URL
-  if (query.salaryMin) {
-    currentFilters.value.salaryMin = query.salaryMin;
-  }
-  if (query.salaryMax) {
-    currentFilters.value.salaryMax = query.salaryMax;
-  }
+  // Parse array parameters
+  const parseArrayParam = (param) => {
+    if (!param) return [];
+    return param.split(',').filter(Boolean);
+  };
   
-  // Set array-based filters if present in URL
-  if (query.jobTypes) {
-    currentFilters.value.jobTypes = query.jobTypes.split(',');
-  }
-  if (query.workArrangements) {
-    currentFilters.value.workArrangements = query.workArrangements.split(',');
-  }
-  if (query.experiences) {
-    currentFilters.value.experiences = query.experiences.split(',');
-  }
-  if (query.educationLevels) {
-    currentFilters.value.educationLevels = query.educationLevels.split(',');
-  }
+  currentFilters.value.jobTypes = parseArrayParam(query.jobTypes);
+  currentFilters.value.workArrangements = parseArrayParam(query.workArrangements);
+  currentFilters.value.experiences = parseArrayParam(query.experiences);
+  currentFilters.value.educationLevels = parseArrayParam(query.educationLevels);
 };
 
-// Watch for route query changes - MOVED AFTER function definition
+// Watch for route changes
 watch(() => route.query, (newQuery) => {
   initializeFilters(newQuery);
 }, { immediate: true, deep: true });
 
-// Initialize on component mount
 onMounted(() => {
   initializeFilters(route.query);
 });
@@ -135,3 +153,9 @@ onMounted(() => {
     <Footer />
   </div>
 </template>
+
+<style scoped>
+.font-epilogue {
+  font-family: 'Epilogue', sans-serif;
+}
+</style>

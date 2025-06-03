@@ -3,6 +3,8 @@ import { ref, computed } from 'vue';
 import Navbar from '../../components/Navbar.vue';
 import Footer from '../../components/Footer.vue';
 import { useRouter } from 'vue-router';
+import { passwordService } from '../../../services/passwordService.js';
+import { toastService } from '../../../utils/toastService.js';  // Fix: gunakan toastService dari utils
 
 const router = useRouter();
 
@@ -10,6 +12,9 @@ const router = useRouter();
 const currentPassword = ref('');
 const newPassword = ref('');
 const confirmPassword = ref('');
+
+// Loading state
+const isSubmitting = ref(false);
 
 // Password visibility toggles
 const showCurrentPassword = ref(false);
@@ -74,24 +79,96 @@ const togglePasswordVisibility = (field) => {
 };
 
 // Handle form submission
-const submitForm = () => {
+const submitForm = async () => {
   validatePasswords();
   
   // If form is valid, send password change request
   if (isFormValid.value) {
-    // In a real app, you would send this to your API
-    console.log('Changing password:', { 
-      currentPassword: currentPassword.value,
-      newPassword: newPassword.value 
-    });
-    
-    // Show success message
-    alert('Password berhasil diubah');
-    
-    // Reset form
-    currentPassword.value = '';
-    newPassword.value = '';
-    confirmPassword.value = '';
+    try {
+      isSubmitting.value = true;
+      
+      const passwordData = {
+        currentPassword: currentPassword.value,
+        newPassword: newPassword.value,
+        confirmPassword: confirmPassword.value
+      };
+      
+      console.log('Changing password...');
+      console.log('Password Data:', passwordData);
+      
+      // Call API to change password
+      const response = await passwordService.changePassword(passwordData);
+      
+      if (response.success) {
+        // Show success message
+        toastService.show({
+          type: 'success',
+          message: 'Password berhasil diubah',
+          duration: 4000
+        });
+        
+        // Reset form
+        currentPassword.value = '';
+        newPassword.value = '';
+        confirmPassword.value = '';
+        
+        // Redirect to profile page after short delay
+        setTimeout(() => {
+          router.push('/home/');
+        }, 1500);
+        
+      } else {
+        // Handle API error response
+        toastService.show({
+          type: 'error',
+          message: response.message || 'Gagal mengubah password',
+          duration: 4000
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error changing password:', error);
+      
+      // Handle different types of errors
+      let errorMessage = 'Gagal mengubah password. Silakan coba lagi.';
+      
+      if (error.response?.status === 400) {
+        const errorData = error.response.data;
+        
+        if (errorData.errors) {
+          // Handle validation errors
+          if (errorData.errors.current_password) {
+            errors.value.currentPassword = errorData.errors.current_password[0];
+          }
+          if (errorData.errors.new_password) {
+            errors.value.newPassword = errorData.errors.new_password[0];
+          }
+          if (errorData.errors.confirm_password) {
+            errors.value.confirmPassword = errorData.errors.confirm_password[0];
+          }
+          return; // Don't show toast if field-specific errors
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Sesi Anda telah berakhir. Silakan login kembali.';
+        // Redirect to login page
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
+      } else if (error.code === 'ERR_NETWORK') {
+        errorMessage = 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
+      }
+      
+      toastService.show({
+        type: 'error',
+        message: errorMessage,
+        duration: 4000
+      });
+      
+    } finally {
+      isSubmitting.value = false;
+    }
   }
 };
 
@@ -129,12 +206,14 @@ const goBack = () => {
                 placeholder="Ketik Password Lama..."
                 class="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#4745F6] focus:border-[#4745F6]"
                 @blur="validatePasswords"
+                :disabled="isSubmitting"
                 required
               />
               <button
                 type="button"
                 class="absolute inset-y-0 right-0 pr-3 flex items-center"
                 @click="togglePasswordVisibility('current')"
+                :disabled="isSubmitting"
               >
                 <!-- Eye icon when password is hidden -->
                 <svg v-if="!showCurrentPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -163,12 +242,14 @@ const goBack = () => {
                 placeholder="Ketik Password Baru..."
                 class="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#4745F6] focus:border-[#4745F6]"
                 @blur="validatePasswords"
+                :disabled="isSubmitting"
                 required
               />
               <button
                 type="button"
                 class="absolute inset-y-0 right-0 pr-3 flex items-center"
                 @click="togglePasswordVisibility('new')"
+                :disabled="isSubmitting"
               >
                 <svg v-if="!showNewPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -195,12 +276,14 @@ const goBack = () => {
                 placeholder="Ketik Verifikasi Password..."
                 class="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#4745F6] focus:border-[#4745F6]"
                 @blur="validatePasswords"
+                :disabled="isSubmitting"
                 required
               />
               <button
                 type="button"
                 class="absolute inset-y-0 right-0 pr-3 flex items-center"
                 @click="togglePasswordVisibility('confirm')"
+                :disabled="isSubmitting"
               >
                 <svg v-if="!showConfirmPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -220,15 +303,24 @@ const goBack = () => {
               type="button"
               @click="goBack"
               class="border border-[#2F27CE] text-[#2F27CE] font-medium py-2.5 px-6 rounded-md hover:bg-[#F8F8FF] transition-colors"
+              :disabled="isSubmitting"
             >
               Kembali
             </button>
             
             <button
               type="submit"
-              class="bg-[#2F27CE] text-white font-medium py-2.5 px-6 rounded-md hover:bg-[#3d3bd4] transition-colors"
+              class="bg-[#2F27CE] text-white font-medium py-2.5 px-6 rounded-md hover:bg-[#3d3bd4] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              :disabled="isSubmitting || !isFormValid"
             >
-              Simpan Perubahan
+              <span v-if="isSubmitting" class="flex items-center">
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Menyimpan...
+              </span>
+              <span v-else>Simpan Perubahan</span>
             </button>
           </div>
         </form>
