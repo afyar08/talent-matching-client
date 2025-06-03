@@ -5,40 +5,41 @@ import { skillService } from '../../../services/skillService';
 import Navbar from '../../components/Navbar.vue';
 import Footer from '../../components/Footer.vue';
 import { useRouter } from 'vue-router';
-import { setInStorage } from '../../../utils/localStorage'; // pastikan sudah ada
+import { setInStorage } from '../../../utils/localStorage';
 
 const router = useRouter();
 
-// Profile detail fields with default values
 const fullName = ref('');
 const email = ref('');
 const imageFile = ref(null);
 const imagePreview = ref('');
-
-// Skills management with default values
 const searchQuery = ref('');
 const selectedSkills = ref([]);
 const MAX_SKILLS = 100;
 const showDropdown = ref(false);
 const isLoadingSkills = ref(false);
+const availableSkills = ref([]);
+const originalProfile = ref(null); // <-- simpan data asli
 
-// Demo list of available skills
-const availableSkills = ref([
-  'JavaScript', 'HTML', 'CSS', 'Vue.js', 'React', 'Angular',
-  'Node.js', 'Python', 'Java', 'PHP', 'C#', 'Ruby',
-  'Swift', 'Kotlin', 'TypeScript', 'SQL', 'NoSQL', 'MongoDB',
-  'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'Git',
-  'UI/UX Design', 'Figma', 'Adobe XD', 'Photoshop', 'Illustrator'
-]);
+const isSkillEmpty = computed(() => selectedSkills.value.length === 0);
 
-// Filtered skills based on search query
-const filteredSkills = computed(() => {
-  if (!searchQuery.value) return [];
+// Fungsi membandingkan array skill
+function isSameSkills(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  if (a.length !== b.length) return false;
+  // Bandingkan isi array tanpa urutan
+  return [...a].sort().join(',') === [...b].sort().join(',');
+}
 
-  return availableSkills.value.filter(skill =>
-    skill.toLowerCase().includes(searchQuery.value.toLowerCase()) &&
-    !selectedSkills.value.includes(skill)
-  );
+// Cek perubahan
+const hasChanges = computed(() => {
+  if (!originalProfile.value) return false;
+  if (isSkillEmpty.value) return false;
+  if (fullName.value !== originalProfile.value.name) return true;
+  if (!isSameSkills(selectedSkills.value, originalProfile.value.skills)) return true;
+  // Jika user upload gambar baru
+  if (imageFile.value) return true;
+  return false;
 });
 
 // Handle image upload
@@ -94,29 +95,6 @@ const initialValues = {
   email: 'johndoe@gmail.com',
   skills: ['JavaScript', 'React', 'Node.js'],
   imageUrl: 'https://randomuser.me/api/portraits/men/36.jpg'
-};
-
-// Check if any changes were made to the form
-const hasChanges = computed(() => {
-  // Check basic fields
-  if (fullName.value !== initialValues.fullName) return true;
-  if (email.value !== initialValues.email) return true;
-  if (imagePreview.value !== initialValues.imageUrl && imageFile.value !== null) return true;
-
-  // Check if skills were added or removed
-  if (selectedSkills.value.length !== initialValues.skills.length) return true;
-
-  // Check if skill content changed
-  for (const skill of selectedSkills.value) {
-    if (!initialValues.skills.includes(skill)) return true;
-  }
-
-  return false;
-});
-
-// Function to handle "Kembali" button click
-const goBack = () => {
-  router.push('/home');
 };
 
 // Final submission - update to reload page instead of redirecting
@@ -175,10 +153,14 @@ onMounted(async () => {
     imagePreview.value = data.profile_image_url
       ? (data.profile_image_url.startsWith('http') ? data.profile_image_url : `http://localhost:8000${data.profile_image_url}`)
       : '';
+    originalProfile.value = {
+      name: data.name || '',
+      skills: [...(data.skills || [])],
+      imageUrl: imagePreview.value
+    };
   } catch (error) {
     console.error('Failed to load profile:', error);
   }
-
   await loadSkills();
 });
 </script>
@@ -313,6 +295,13 @@ onMounted(async () => {
                 <span :class="selectedSkills.length >= 1 ? 'text-green-600' : 'text-red-500'" class="text-sm font-medium">
                   {{ selectedSkills.length }} Skill dipilih
                 </span>
+              </div>
+
+              <!-- Skill kosong warning -->
+              <div v-if="isSkillEmpty" class="w-full mt-2">
+                <div class="border border-red-500 bg-red-50 text-red-600 rounded-md px-4 py-2 text-sm text-center">
+                  Skill Tidak Boleh Kosong
+                </div>
               </div>
             </div>
 

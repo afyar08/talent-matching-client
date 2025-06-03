@@ -32,9 +32,12 @@ const availableSkills = ref([]);
 // Loading state for form submission
 const isSubmitting = ref(false);
 
+// Computed property to check if no skills are selected
+const isSkillEmpty = computed(() => selectedSkills.value.length === 0);
+
 // Filtered skills based on search query
 const filteredSkills = computed(() => {
-  if (!searchQuery.value) return [];
+  if (!searchQuery.value) return [];  
   
   return availableSkills.value.filter(skill => 
     skill.toLowerCase().includes(searchQuery.value.toLowerCase()) && 
@@ -263,7 +266,6 @@ const submitForm = async () => {
 <template>
   <div class="min-h-screen flex flex-col font-be-vietnam-pro bg-white">
     <Navbar navbarState="register" />
-    
     <main class="flex-grow flex flex-col items-center px-6 py-8 mt-8 max-w-screen-xl mx-auto w-full">
       <!-- Header -->
       <div class="text-center mb-6 w-full">
@@ -427,6 +429,12 @@ const submitForm = async () => {
                   {{ selectedSkills.length }} Skill dipilih
                 </span>
               </div>
+              <!-- Tambahkan warning jika skill kosong -->
+              <div v-if="isSkillEmpty" class="w-full mt-2">
+                <div class="border border-red-500 bg-red-50 text-red-600 rounded-md px-4 py-2 text-sm text-center">
+                  Skill Tidak Boleh Kosong
+                </div>
+              </div>
             </div>
             
             <!-- Selected Skills -->
@@ -464,7 +472,7 @@ const submitForm = async () => {
             <button
               type="submit"
               class="bg-[#2F27CE] text-white font-medium py-2.5 px-8 rounded-md hover:bg-[#3d3bd4] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-              :disabled="isSubmitting || selectedSkills.length === 0"
+              :disabled="isSubmitting || isSkillEmpty"
             >
               <span v-if="isSubmitting" class="flex items-center">
                 <svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
