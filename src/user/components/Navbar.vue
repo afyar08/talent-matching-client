@@ -218,18 +218,16 @@ onMounted(() => {
             <span class="font-epilogue font-semibold text-right text-sm text-[#5D5FEF]">Selamat Datang!</span>
           </div>
           <div class="flex items-center gap-2">
-            <div class="w-12 h-12 rounded-full overflow-hidden">
+            <div class="w-12 h-12 rounded-full bg-gray-100 flex-shrink-0">
               <img 
                 v-if="userAvatar" 
                 :src="userAvatar" 
                 alt="User Profile" 
-                class="w-full h-full object-cover"
+                class="w-full h-full rounded-full object-cover"
                 @error="$event.target.src = 'https://i.pravatar.cc/100'"
                 @load="console.log('Profile picture loaded successfully')"
               />
-              <div v-else class="w-full h-full bg-gray-100 flex items-center justify-center">
-                <img src="https://i.pravatar.cc/100" alt="Default profile" class="w-full h-full object-cover">
-              </div>
+              <img v-else src="https://i.pravatar.cc/100" alt="Default profile" class="w-full h-full rounded-full object-cover">
             </div>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -327,17 +325,15 @@ onMounted(() => {
             <span class="font-epilogue text-sm text-[#5D5FEF]">Selamat Datang!</span>
           </div>
           <div class="ml-auto flex items-center gap-2">
-            <div class="w-12 h-12 rounded-full overflow-hidden">
+            <div class="w-12 h-12 rounded-full bg-gray-100 flex-shrink-0">
               <img 
                 v-if="userAvatar" 
                 :src="userAvatar" 
                 alt="User Profile" 
-                class="w-full h-full object-cover"
+                class="w-full h-full rounded-full object-cover"
                 @error="$event.target.src = 'https://i.pravatar.cc/100'"
               />
-              <div v-else class="w-full h-full bg-gray-100 flex items-center justify-center">
-                <img src="https://i.pravatar.cc/100" alt="Default profile" class="w-full h-full object-cover">
-              </div>
+              <img v-else src="https://i.pravatar.cc/100" alt="Default profile" class="w-full h-full rounded-full object-cover">
             </div>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />

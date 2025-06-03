@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import Navbar from '../../components/Navbar.vue';
 import Footer from '../../components/Footer.vue';
 import { useRouter } from 'vue-router';
@@ -31,6 +31,13 @@ const availableSkills = ref([]);
 
 // Loading state for form submission
 const isSubmitting = ref(false);
+
+// Modal states
+const showConfirmModal = ref(false);
+const showSuccessModal = ref(false);
+const registrationSuccess = ref(false);
+const countdown = ref(3);
+let countdownTimer = null;
 
 // Computed property to check if no skills are selected
 const isSkillEmpty = computed(() => selectedSkills.value.length === 0);
@@ -176,7 +183,7 @@ const goBack = () => {
   router.push('/register');
 };
 
-// Form submission - Register user with skills
+// Show confirmation modal before submitting
 const submitForm = async () => {
   // Validate skills requirement
   if (selectedSkills.value.length === 0) {
@@ -187,6 +194,29 @@ const submitForm = async () => {
     return;
   }
   
+  // Show confirmation modal instead of submitting immediately
+  showConfirmModal.value = true;
+};
+
+// Close the confirmation modal
+const closeConfirmModal = () => {
+  showConfirmModal.value = false;
+};
+
+// Start countdown timer for redirect
+const startCountdown = () => {
+  countdown.value = 3;
+  countdownTimer = setInterval(() => {
+    countdown.value--;
+    if (countdown.value <= 0) {
+      clearInterval(countdownTimer);
+      router.push('/login');
+    }
+  }, 1000);
+};
+
+// Handle actual form submission after confirmation
+const confirmSubmit = async () => {
   try {
     isSubmitting.value = true;
     
@@ -215,20 +245,18 @@ const submitForm = async () => {
     
     console.log('Registration successful:', response);
 
-    // Show success message
-    toastService.show({
-      type: 'success',
-      message: 'Registration successful! Please login with your credentials.',
-      duration: 4000
-    });
-
+    // Registration was successful
+    registrationSuccess.value = true;
+    
+    // Close confirmation modal and show success modal
+    showConfirmModal.value = false;
+    showSuccessModal.value = true;
+    
     // Clear registration data from store
     registrationStore.clearRegistrationData();
 
-    // Redirect to login page
-    setTimeout(() => {
-      router.push('/login');
-    }, 2000);
+    // Start countdown for redirect
+    startCountdown();
 
   } catch (error) {
     console.error('Registration error:', error);
@@ -253,6 +281,9 @@ const submitForm = async () => {
       errorMessage = 'Network error. Please check if the server is running.';
     }
     
+    // Close confirmation modal
+    showConfirmModal.value = false;
+    
     toastService.show({
       type: 'error',
       message: errorMessage
@@ -261,6 +292,38 @@ const submitForm = async () => {
     isSubmitting.value = false;
   }
 };
+
+// Watch for modal state changes to toggle body scroll
+// Function to toggle body scroll
+const toggleBodyScroll = (disable) => {
+  if (disable) {
+    document.body.classList.add('overflow-hidden');
+  } else {
+    document.body.classList.remove('overflow-hidden');
+  }
+};
+
+// Watch both modals and disable scrolling when either is shown
+watch(
+  [showConfirmModal, showSuccessModal],
+  ([confirmVisible, successVisible]) => {
+    toggleBodyScroll(confirmVisible || successVisible);
+  }
+);
+
+// Initialize body state on mount and clean up on unmount
+onMounted(() => {
+  if (showConfirmModal.value || showSuccessModal.value) {
+    toggleBodyScroll(true);
+  }
+});
+
+onUnmounted(() => {
+  toggleBodyScroll(false);
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+  }
+});
 </script>
 
 <template>
@@ -488,11 +551,70 @@ const submitForm = async () => {
       </div>
     </main>
     <Footer />
+    
+    <!-- Confirmation Modal -->
+    <div v-if="showConfirmModal" class="fixed inset-0 flex items-center justify-center z-50 overflow-hidden">
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Konfirmasi Pendaftaran</h3>
+        <p class="text-gray-700 mb-6">Proses registrasi memakan waktu estimasi 5-10 menit. Apakah anda yakin ingin melanjutkan pendaftaran?</p>
+        
+        <div class="flex justify-end gap-4">
+          <button 
+            @click="closeConfirmModal" 
+            type="button"
+            class="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+            :disabled="isSubmitting"
+          >
+            Batal
+          </button>
+          <button 
+            @click="confirmSubmit" 
+            type="button"
+            class="px-4 py-2 bg-[#2F27CE] text-white rounded-md hover:bg-[#3d3bd4] disabled:bg-gray-400"
+            :disabled="isSubmitting"
+          >
+            <span v-if="isSubmitting" class="flex items-center">
+              <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            </span>
+            <span v-else>Ya, Daftar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Success Modal -->
+    <div v-if="showSuccessModal" class="fixed inset-0 flex items-center justify-center z-50 overflow-hidden">
+      <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-xl text-center">
+        <!-- Green checkmark -->
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+          <svg class="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+        
+        <h3 class="text-lg font-bold text-gray-900 mb-2">Registrasi Berhasil!</h3>
+        <p class="text-gray-700 mb-6">Akun anda telah berhasil dibuat. Silahkan login dengan email dan password anda.</p>
+        
+        <p class="text-sm text-gray-500">
+          Redirecting to login in {{ countdown }} seconds...
+        </p>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .font-be-vietnam-pro {
   font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+/* Add global styles using :global for body when modals are open */
+:global(.overflow-hidden) {
+  overflow: hidden;
+  padding-right: 15px; /* Prevent layout shift when scrollbar disappears */
 }
 </style>
