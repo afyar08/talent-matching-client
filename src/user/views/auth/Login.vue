@@ -3,20 +3,17 @@ import { ref } from 'vue';
 import Navbar from '../../components/Navbar.vue';
 import Footer from '../../components/Footer.vue';
 import { useRouter } from 'vue-router';
-import { setupDummyUser } from '../../../utils/setupDummyUser';
 import { setInStorage } from '../../../utils/localStorage';
 import { toastService } from '../../../utils/toastService';
+import axios from 'axios';
 
 const router = useRouter();
 const email = ref('');
 const password = ref('');
 const errorMessage = ref('');
 const isLoading = ref(false);
-
-// Password visibility toggle variable
 const showPassword = ref(false);
 
-// Toggle password visibility
 const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value;
 };
@@ -31,82 +28,114 @@ const login = async () => {
     return;
   }
 
-  // Calculate token expiration date (24 hours from now)
-  const expirationDate = new Date();
-  expirationDate.setHours(expirationDate.getHours() + 24);
-  
+  isLoading.value = true;
+  errorMessage.value = '';
+
   try {
-    isLoading.value = true;
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log("Attempting login...");
+    const response = await axios.post('http://localhost:8000/api/auth/sign-in/', {
+      email: email.value,
+      password: password.value,
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    console.log("Response data:", response.data);
+    
+    // Check for tokens in nested structure OR direct structure
+    const hasTokens = response.data.tokens?.access || response.data.access;
+    
+    if (hasTokens) {
+      console.log("Login successful, extracting tokens...");
+      
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 1);
 
-    // For demo purposes - using the pre-defined dummy user
-    if (email.value === 'user@example.com' && password.value === 'password') {
-
-      const dummyUser = {
-        id: 'usr-12345',
-        name: 'Afyar Siti Ababil',
-        token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3ItMTIzNDUiLCJuYW1lIjoiQWZ5YXIgU2l0aSBBYmFiaWwiLCJpYXQiOjE2NDYyNTU1MjJ9.FEI09oPl2JnSP_WZiswYA',
-        tokenExpiredDate: expirationDate.toISOString()
-      };
-
+      const userData = response.data.user;
+      
+      // Get tokens from correct structure
+      const accessToken = response.data.tokens?.access || response.data.access;
+      const refreshToken = response.data.tokens?.refresh || response.data.refresh;
+      
+      console.log("Storing user data:", {
+        uid: userData.uid,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        profilePicture: userData.profile_picture_url
+      });
+      
       // Set localStorage items
-      setInStorage('user-id', dummyUser.id);
-      setInStorage('user-name', dummyUser.name);
-      setInStorage('user-token', dummyUser.token);
-      setInStorage('token-expired-date', dummyUser.tokenExpiredDate);
+      setInStorage('user-id', userData.uid);
+      setInStorage('user-name', userData.name);
+      setInStorage('user-email', userData.email);
+      setInStorage('user-role', userData.role);
+      setInStorage('user-token', accessToken);
+      setInStorage('user-refresh-token', refreshToken);
+      setInStorage('token-expired-date', expirationDate.toISOString());
+      
+      // Store profile picture URL if available
+      if (userData.profile_picture_url) {
+        console.log("Profile picture URL found:", userData.profile_picture_url);
+        setInStorage('user-profile-picture', userData.profile_picture_url);
+        
+        // Test if profile picture is accessible
+        try {
+          const imageResponse = await fetch(userData.profile_picture_url);
+          if (imageResponse.ok) {
+            console.log("Profile picture is accessible");
+          } else {
+            console.log("Profile picture URL not accessible:", imageResponse.status);
+          }
+        } catch (imgError) {
+          console.log("Error testing profile picture URL:", imgError);
+        }
+      } else {
+        console.log("No profile picture URL found in response");
+        // Clear any existing profile picture
+        setInStorage('user-profile-picture', null);
+      }
 
-      // Show success toast using the global toast service
       toastService.show({
         type: 'success',
         message: 'Login successful! Redirecting...',
         duration: 3000
       });
 
-      // Successful login, navigate to home after a short delay
       setTimeout(() => {
         router.push('/home');
       }, 1500);
-    } else if (email.value === 'admin@example.com' && password.value === 'password') {
-      // Admin login successful
-      const adminUser = {
-        id: 'admin-12345',
-        name: 'Admin User',
-        token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbi0xMjM0NSIsIm5hbWUiOiJBZG1pbiBVc2VyIiwiaWF0IjoxNjQ2MjU1NTIyfQ.5q5Z5o5Z5o5Z5o5Z5o5Z5o5Z5o5Z5o5Z5o5Z5o5Z5o',
-        tokenExpiredDate: expirationDate.toISOString()
-      };
-
-      // Set localStorage items
-      setInStorage('admin-id', adminUser.id);
-      setInStorage('admin-name', adminUser.name);
-      setInStorage('admin-token', adminUser.token);
-      setInStorage('token-expired-date', adminUser.tokenExpiredDate);
-
-      // Show success toast using the global toast service
-      toastService.show({
-        type: 'success',
-        message: 'Admin login successful! Redirecting...',
-        duration: 3000
-      });
-
-      // Successful login, navigate to admin dashboard after a short delay
-      setTimeout(() => {
-        router.push('/admin');
-      }, 1500);
     } else {
-      errorMessage.value = 'Invalid email or password';
+      console.error("No access token found in response");
+      errorMessage.value = 'Login failed. No access token received.';
       toastService.show({
         type: 'error',
-        message: 'Invalid email or password'
+        message: errorMessage.value
       });
     }
   } catch (error) {
-    errorMessage.value = 'An error occurred during login';
+    console.error('Login error:', error);
+    
+    if (error.code === 'ERR_NETWORK') {
+      errorMessage.value = 'Network error. Please check if the server is running.';
+    } else if (error.response?.status === 400) {
+      errorMessage.value = error.response.data?.detail || error.response.data?.non_field_errors?.[0] || 'Invalid email or password.';
+    } else if (error.response?.status === 401) {
+      errorMessage.value = 'Invalid email or password.';
+    } else if (error.response?.data?.detail) {
+      errorMessage.value = error.response.data.detail;
+    } else if (error.response?.data?.non_field_errors) {
+      errorMessage.value = error.response.data.non_field_errors[0];
+    } else {
+      errorMessage.value = 'Login failed. Please try again.';
+    }
+    
     toastService.show({
       type: 'error',
-      message: 'An error occurred during login'
+      message: errorMessage.value
     });
-    console.error('Login error:', error);
   } finally {
     isLoading.value = false;
   }
@@ -177,6 +206,11 @@ const login = async () => {
                   </svg>
                 </button>
               </div>
+            </div>
+
+            <!-- Error Message -->
+            <div v-if="errorMessage" class="text-red-500 text-sm">
+              {{ errorMessage }}
             </div>
 
             <!-- Login Button -->

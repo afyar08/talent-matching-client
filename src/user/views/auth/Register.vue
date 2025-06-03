@@ -3,6 +3,9 @@ import { ref } from 'vue';
 import Navbar from '../../components/Navbar.vue';
 import Footer from '../../components/Footer.vue';
 import { useRouter } from 'vue-router';
+import { registrationStore } from '../../../stores/registrationStore';
+import { authService } from '../../../services/authService';
+import { toastService } from '../../../utils/toastService';
 
 const router = useRouter();
 const fullName = ref('');
@@ -25,30 +28,113 @@ const togglePasswordVisibility = (field) => {
   }
 };
 
+// Simple password validation - only check minimum 8 characters
+const validatePassword = (password) => {
+  return password.length >= 8;
+};
+
 const register = async () => {
+  // Clear previous error
+  errorMessage.value = '';
+
+  // Validate required fields
   if (!fullName.value || !email.value || !password.value || !verifyPassword.value) {
     errorMessage.value = 'Please fill in all fields';
+    toastService.show({
+      type: 'error',
+      message: 'Please fill in all fields'
+    });
     return;
   }
 
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email.value)) {
+    errorMessage.value = 'Please enter a valid email address';
+    toastService.show({
+      type: 'error',
+      message: 'Please enter a valid email address'
+    });
+    return;
+  }
+
+  // Validate password - only minimum 8 characters
+  if (!validatePassword(password.value)) {
+    errorMessage.value = 'Password must be at least 8 characters long';
+    toastService.show({
+      type: 'error',
+      message: 'Password must be at least 8 characters long'
+    });
+    return;
+  }
+
+  // Validate password confirmation
   if (password.value !== verifyPassword.value) {
     errorMessage.value = 'Passwords do not match';
+    toastService.show({
+      type: 'error',
+      message: 'Passwords do not match'
+    });
     return;
   }
   
   try {
     isLoading.value = true;
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // For demo purposes - would be replaced with actual registration API call
-    console.log('Registration data:', { fullName: fullName.value, email: email.value });
+    console.log('Checking email availability...');
     
-    // Redirect to login after successful registration
-    router.push('/register/lengkapi-profil');
+    // Check email availability first
+    const emailCheckResult = await authService.checkEmailAvailability(email.value);
+    
+    if (!emailCheckResult.available) {
+      errorMessage.value = 'Email address is already registered. Please use a different email.';
+      toastService.show({
+        type: 'error',
+        message: 'Email address is already registered'
+      });
+      return;
+    }
+
+    // If email is available, save data to state and proceed
+    console.log('Email is available, saving to state...');
+    
+    // Save registration data to state for use in next page
+    registrationStore.setRegistrationData({
+      fullName: fullName.value,
+      email: email.value,
+      password: password.value
+    });
+
+    console.log('Data saved to state:', registrationStore.getRegistrationData());
+
+    // Show success message
+    toastService.show({
+      type: 'success',
+      message: 'Email is available! Proceeding to complete profile...',
+      duration: 2000
+    });
+
+    // Redirect to complete profile page
+    setTimeout(() => {
+      router.push('/register/lengkapi-profil');
+    }, 1000);
+
   } catch (error) {
-    errorMessage.value = 'An error occurred during registration';
-    console.error('Registration error:', error);
+    console.error('Email validation error:', error);
+    
+    // Handle different types of errors
+    if (error.response?.status === 400) {
+      errorMessage.value = error.response.data?.message || 'Email address is already registered';
+    } else if (error.code === 'ERR_NETWORK') {
+      errorMessage.value = 'Network error. Please check if the server is running.';
+    } else {
+      errorMessage.value = 'An error occurred while checking email. Please try again.';
+    }
+    
+    toastService.show({
+      type: 'error',
+      message: errorMessage.value
+    });
   } finally {
     isLoading.value = false;
   }
@@ -57,7 +143,7 @@ const register = async () => {
 
 <template>
   <div class="min-h-screen flex flex-col font-be-vietnam-pro bg-white">
-    <!-- Navbar with login state -->
+    <!-- Navbar with register state -->
     <Navbar navbarState="register" />
     
     <!-- Main Content -->
@@ -74,7 +160,7 @@ const register = async () => {
             <!-- Full Name Field -->
             <div>
               <label for="fullName" class="block text-sm font-semibold text-gray-700 mb-2">
-                Full Name
+                Full Name <span class="text-red-500">*</span>
               </label>
               <input
                 id="fullName"
@@ -89,7 +175,7 @@ const register = async () => {
             <!-- Email Field -->
             <div>
               <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
-                Email Address
+                Email Address <span class="text-red-500">*</span>
               </label>
               <input
                 id="email"
@@ -104,7 +190,7 @@ const register = async () => {
             <!-- Password Field -->
             <div>
               <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
-                Password
+                Password <span class="text-red-500">*</span>
               </label>
               <div class="relative">
                 <input
@@ -136,14 +222,14 @@ const register = async () => {
             <!-- Verify Password Field -->
             <div>
               <label for="verifyPassword" class="block text-sm font-semibold text-gray-700 mb-2">
-                Verifikasi Password
+                Verifikasi Password <span class="text-red-500">*</span>
               </label>
               <div class="relative">
                 <input
                   id="verifyPassword"
                   v-model="verifyPassword"
                   :type="showVerifyPassword ? 'text' : 'password'"
-                  placeholder="Enter password"
+                  placeholder="Confirm your password"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#4745F6] focus:border-transparent"
                   required
                 />
@@ -164,11 +250,11 @@ const register = async () => {
             </div>
             
             <!-- Error Message -->
-            <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-4">
-              <div class="text-red-700">{{ errorMessage }}</div>
+            <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+              <div class="text-red-700 text-sm">{{ errorMessage }}</div>
             </div>
             
-            <!-- Register Button -->
+            <!-- Next Button -->
             <button
               type="submit"
               class="w-full bg-[#2F27CE] text-white font-bold py-3 px-4 rounded-md hover:bg-[#3d3bd4] transition-colors"
@@ -181,7 +267,7 @@ const register = async () => {
                 </svg>
                 Loading...
               </span>
-              <span v-else>Register</span>
+              <span v-else>Selanjutnya</span>
             </button>
             
             <!-- Login Link -->
@@ -195,7 +281,7 @@ const register = async () => {
         </div>
       </div>
       
-      <!-- Right Side - Image (Updated to use asset) -->
+      <!-- Right Side - Image -->
       <div class="hidden md:flex md:w-1/2 items-center justify-center">
         <div class="max-w-xl p-8 mr-40">
           <img 

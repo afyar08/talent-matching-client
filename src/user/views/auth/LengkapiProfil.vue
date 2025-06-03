@@ -1,35 +1,50 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import Navbar from '../../components/Navbar.vue';
 import Footer from '../../components/Footer.vue';
 import { useRouter } from 'vue-router';
+import { registrationStore } from '../../../stores/registrationStore';
+import { toastService } from '../../../utils/toastService';
+import { authService } from '../../../services/authService';
+import { skillService } from '../../../services/skillService';
 
 const router = useRouter();
 
-// Profile detail fields with default values but will be disabled
-const fullName = ref('John Doe');
-const email = ref('johndoe@gmail.com');
-const imageFile = ref(null);
-const imagePreview = ref('https://randomuser.me/api/portraits/men/36.jpg');
+// Get registration data from store
+const registrationData = computed(() => registrationStore.getRegistrationData());
 
-// Skills management with empty initial values
+// Profile detail fields - populated from store
+const fullName = ref('');
+const email = ref('');
+const imageFile = ref(null);
+const imagePreview = ref(null);
+
+// Skills management
 const searchQuery = ref('');
 const selectedSkills = ref([]);
 const MAX_SKILLS = 100;
 const showDropdown = ref(false);
+const isLoadingSkills = ref(false);
 
-// Demo list of available skills
-const availableSkills = ref([
-  'JavaScript', 'HTML', 'CSS', 'Vue.js', 'React', 'Angular', 
-  'Node.js', 'Python', 'Java', 'PHP', 'C#', 'Ruby', 
-  'Swift', 'Kotlin', 'TypeScript', 'SQL', 'NoSQL', 'MongoDB',
-  'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'Git',
-  'UI/UX Design', 'Figma', 'Adobe XD', 'Photoshop', 'Illustrator'
-]);
+// Available skills list - loaded from database
+const availableSkills = ref([]);
+
+// Loading state for form submission
+const isSubmitting = ref(false);
+
+// Modal states
+const showConfirmModal = ref(false);
+const showSuccessModal = ref(false);
+const registrationSuccess = ref(false);
+const countdown = ref(3);
+let countdownTimer = null;
+
+// Computed property to check if no skills are selected
+const isSkillEmpty = computed(() => selectedSkills.value.length === 0);
 
 // Filtered skills based on search query
 const filteredSkills = computed(() => {
-  if (!searchQuery.value) return [];
+  if (!searchQuery.value) return [];  
   
   return availableSkills.value.filter(skill => 
     skill.toLowerCase().includes(searchQuery.value.toLowerCase()) && 
@@ -37,12 +52,101 @@ const filteredSkills = computed(() => {
   );
 });
 
-// Handle image upload
+// Displayed skills - consolidated logic to show all available skills when dropdown opened or filtered skills
+const displayedSkills = computed(() => {
+  if (!searchQuery.value && showDropdown.value) {
+    // Show all available skills not already selected when dropdown is open with empty search
+    return availableSkills.value.filter(skill => 
+      !selectedSkills.value.includes(skill)
+    );
+  }
+  
+  // Show filtered skills when user is typing
+  return filteredSkills.value;
+});
+
+// Load skills from database
+const loadSkills = async () => {
+  try {
+    isLoadingSkills.value = true;
+    const response = await skillService.getAllSkills();
+    availableSkills.value = response.skills || [];
+    console.log('Loaded skills from database:', availableSkills.value);
+  } catch (error) {
+    console.error('Error loading skills:', error);
+    toastService.show({
+      type: 'error',
+      message: 'Failed to load skills from database'
+    });
+    
+    // Fallback to default skills if API fails
+    availableSkills.value = [
+      'JavaScript', 'HTML', 'CSS', 'Vue.js', 'React', 'Angular', 
+      'Node.js', 'Python', 'Java', 'PHP', 'C#', 'Ruby', 
+      'Swift', 'Kotlin', 'TypeScript', 'SQL', 'NoSQL', 'MongoDB',
+      'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'Git',
+      'UI/UX Design', 'Figma', 'Adobe XD', 'Photoshop', 'Illustrator'
+    ];
+  } finally {
+    isLoadingSkills.value = false;
+  }
+};
+
+// Initialize form with data from store
+onMounted(async () => {
+  // Check if registration data exists
+  if (!registrationData.value.email) {
+    // If no registration data, redirect back to register
+    toastService.show({
+      type: 'error',
+      message: 'Please complete the registration form first'
+    });
+    router.push('/register');
+    return;
+  }
+
+  // Populate form with registration data
+  fullName.value = registrationData.value.fullName;
+  email.value = registrationData.value.email;
+  
+  console.log('Loaded registration data:', registrationData.value);
+  
+  // Load skills from database
+  await loadSkills();
+});
+
+// Handle image upload with preview
 const handleImageUpload = (event) => {
   const file = event.target.files[0];
   if (file) {
+    // Validate file type
+    if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
+      toastService.show({
+        type: 'error',
+        message: 'Please select a valid image file (JPG, JPEG, or PNG)'
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toastService.show({
+        type: 'error',
+        message: 'File size must be less than 5MB'
+      });
+      return;
+    }
+
     imageFile.value = file;
-    imagePreview.value = URL.createObjectURL(file);
+    
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      imagePreview.value = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    
+    console.log('Image uploaded:', file.name);
   }
 };
 
@@ -52,86 +156,179 @@ const addSkill = (skill) => {
     selectedSkills.value.push(skill);
     searchQuery.value = '';
     showDropdown.value = false;
+    console.log('Added skill:', skill);
   }
 };
 
 // Remove a skill from the selected list
 const removeSkill = (skill) => {
   selectedSkills.value = selectedSkills.value.filter(s => s !== skill);
+  console.log('Removed skill:', skill);
 };
 
-// Toggle dropdown visibility
+// Toggle dropdown
 const toggleDropdown = () => {
   showDropdown.value = !showDropdown.value;
   
   // If showing the dropdown, focus the input
   if (showDropdown.value) {
     setTimeout(() => {
-      document.getElementById('skill').focus();
+      document.getElementById('skill')?.focus();
     }, 100);
   }
 };
 
-// Show all available skills when dropdown opened with empty search
-const displayedSkills = computed(() => {
-  if (!searchQuery.value && showDropdown.value) {
-    // Show all available skills not already selected
-    return availableSkills.value.filter(skill => 
-      !selectedSkills.value.includes(skill)
-    );
-  }
-  
-  return filteredSkills.value;
-});
-
-// Store initial values to detect changes
-const initialValues = {
-  fullName: 'John Doe',
-  email: 'johndoe@gmail.com',
-  skills: [],
-  imageUrl: 'https://randomuser.me/api/portraits/men/36.jpg'
-};
-
-// Check if any changes were made to the form
-const hasChanges = computed(() => {
-  // For this form, only profile image and skills can change
-  if (imagePreview.value !== initialValues.imageUrl && imageFile.value !== null) return true;
-  
-  // Check if skills were added (since we start with empty skills)
-  if (selectedSkills.value.length > 0) return true;
-  
-  return false;
-});
-
 // Navigation handling
 const goBack = () => {
-  router.push('/login');
+  router.push('/register');
 };
 
-// Form submission
-const submitForm = () => {
+// Show confirmation modal before submitting
+const submitForm = async () => {
+  // Validate skills requirement
   if (selectedSkills.value.length === 0) {
-    alert('Please select at least one skill');
+    toastService.show({
+      type: 'error',
+      message: 'Please select at least one skill'
+    });
     return;
   }
   
-  // Would typically send the combined data to the server here
-  console.log('Profile details:', {
-    fullName: fullName.value,
-    email: email.value,
-    profileImage: imageFile.value,
-    skills: selectedSkills.value
-  });
-  
-  // Redirect to home after completing profile
-  router.push('/home');
+  // Show confirmation modal instead of submitting immediately
+  showConfirmModal.value = true;
 };
+
+// Close the confirmation modal
+const closeConfirmModal = () => {
+  showConfirmModal.value = false;
+};
+
+// Start countdown timer for redirect
+const startCountdown = () => {
+  countdown.value = 3;
+  countdownTimer = setInterval(() => {
+    countdown.value--;
+    if (countdown.value <= 0) {
+      clearInterval(countdownTimer);
+      router.push('/login');
+    }
+  }, 1000);
+};
+
+// Handle actual form submission after confirmation
+const confirmSubmit = async () => {
+  try {
+    isSubmitting.value = true;
+    
+    // Prepare FormData for multipart/form-data
+    const formData = new FormData();
+    formData.append('name', fullName.value);
+    formData.append('email', email.value);
+    formData.append('password', registrationData.value.password);
+    formData.append('role', 'user');
+    
+    // Add skills as JSON array
+    selectedSkills.value.forEach(skill => {
+      formData.append('skills', skill);
+    });
+    
+    // Add profile picture if uploaded (optional)
+    if (imageFile.value) {
+      formData.append('profile_picture', imageFile.value);
+      console.log('Including profile picture in registration');
+    }
+
+    console.log('Submitting registration with skills:', selectedSkills.value);
+
+    // Call registration API
+    const response = await authService.registerWithSkills(formData);
+    
+    console.log('Registration successful:', response);
+
+    // Registration was successful
+    registrationSuccess.value = true;
+    
+    // Close confirmation modal and show success modal
+    showConfirmModal.value = false;
+    showSuccessModal.value = true;
+    
+    // Clear registration data from store
+    registrationStore.clearRegistrationData();
+
+    // Start countdown for redirect
+    startCountdown();
+
+  } catch (error) {
+    console.error('Registration error:', error);
+    
+    let errorMessage = 'Registration failed. Please try again.';
+    
+    // Handle different types of errors
+    if (error.response?.status === 400) {
+      const errorData = error.response.data;
+      if (errorData.skills) {
+        errorMessage = 'Skills: ' + errorData.skills[0];
+      } else if (errorData.email) {
+        errorMessage = 'Email: ' + errorData.email[0];
+      } else if (errorData.password) {
+        errorMessage = 'Password: ' + errorData.password[0];
+      } else if (errorData.name) {
+        errorMessage = 'Name: ' + errorData.name[0];
+      } else if (errorData.detail) {
+        errorMessage = errorData.detail;
+      }
+    } else if (error.code === 'ERR_NETWORK') {
+      errorMessage = 'Network error. Please check if the server is running.';
+    }
+    
+    // Close confirmation modal
+    showConfirmModal.value = false;
+    
+    toastService.show({
+      type: 'error',
+      message: errorMessage
+    });
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+// Watch for modal state changes to toggle body scroll
+// Function to toggle body scroll
+const toggleBodyScroll = (disable) => {
+  if (disable) {
+    document.body.classList.add('overflow-hidden');
+  } else {
+    document.body.classList.remove('overflow-hidden');
+  }
+};
+
+// Watch both modals and disable scrolling when either is shown
+watch(
+  [showConfirmModal, showSuccessModal],
+  ([confirmVisible, successVisible]) => {
+    toggleBodyScroll(confirmVisible || successVisible);
+  }
+);
+
+// Initialize body state on mount and clean up on unmount
+onMounted(() => {
+  if (showConfirmModal.value || showSuccessModal.value) {
+    toggleBodyScroll(true);
+  }
+});
+
+onUnmounted(() => {
+  toggleBodyScroll(false);
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+  }
+});
 </script>
 
 <template>
   <div class="min-h-screen flex flex-col font-be-vietnam-pro bg-white">
     <Navbar navbarState="register" />
-    
     <main class="flex-grow flex flex-col items-center px-6 py-8 mt-8 max-w-screen-xl mx-auto w-full">
       <!-- Header -->
       <div class="text-center mb-6 w-full">
@@ -157,7 +354,7 @@ const submitForm = () => {
               <!-- Profile picture -->
               <div>
                 <img 
-                  :src="imagePreview" 
+                  :src="imagePreview || 'https://randomuser.me/api/portraits/men/36.jpg'" 
                   alt="Profile Picture" 
                   class="w-24 h-24 rounded-full object-cover border border-gray-200"
                 />
@@ -169,7 +366,7 @@ const submitForm = () => {
                 <input
                   id="profilePicture"
                   type="file"
-                  accept="image/png, image/jpeg, image/jpg, image/gif"
+                  accept="image/png, image/jpeg, image/jpg"
                   class="hidden"
                   @change="handleImageUpload"
                 />
@@ -183,7 +380,7 @@ const submitForm = () => {
                     <div>
                       <span class="text-[#4745F6] hover:underline">Click to upload</span>
                     </div>
-                    <p class="text-xs text-gray-400 mt-1">SVG, PNG, JPG or GIF (max. 400 x 400px)</p>
+                    <p class="text-xs text-gray-400 mt-1">PNG or JPG (max. 5MB) - Optional</p>
                   </div>
                 </label>
               </div>
@@ -247,13 +444,19 @@ const submitForm = () => {
                     class="w-full px-4 py-2.5 border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-[#4745F6] focus:border-[#4745F6]"
                     @focus="showDropdown = true"
                     @keydown.escape="showDropdown = false"
+                    :disabled="isLoadingSkills"
                   />
                   <button
                     type="button"
-                    class="px-3 bg-white border border-l-0 border-gray-300 rounded-r-md hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-[#4745F6] focus:border-[#4745F6]"
+                    class="px-3 bg-white border border-l-0 border-gray-300 rounded-r-md hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-[#4745F6] focus:border-[#4745F6] disabled:bg-gray-100"
                     @click="toggleDropdown"
+                    :disabled="isLoadingSkills"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg v-if="isLoadingSkills" class="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
@@ -278,9 +481,22 @@ const submitForm = () => {
                 <div v-else-if="showDropdown && searchQuery && !displayedSkills.length" class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg p-4 text-center text-gray-500">
                   No skills found matching "{{ searchQuery }}"
                 </div>
+                
+                <div v-else-if="isLoadingSkills && showDropdown" class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg p-4 text-center text-gray-500">
+                  Loading skills...
+                </div>
               </div>
-              <div class="text-xs text-gray-500 mt-2 flex justify-end">
-                <span class="text-red-500 text-sm">{{ selectedSkills.length }} Skill dipilih</span>
+              <div class="text-xs text-gray-500 mt-2 flex justify-between">
+                <span class="text-gray-500">Minimal 1 skill harus dipilih</span>
+                <span :class="selectedSkills.length >= 1 ? 'text-green-600' : 'text-red-500'" class="text-sm font-medium">
+                  {{ selectedSkills.length }} Skill dipilih
+                </span>
+              </div>
+              <!-- Tambahkan warning jika skill kosong -->
+              <div v-if="isSkillEmpty" class="w-full mt-2">
+                <div class="border border-red-500 bg-red-50 text-red-600 rounded-md px-4 py-2 text-sm text-center">
+                  Skill Tidak Boleh Kosong
+                </div>
               </div>
             </div>
             
@@ -311,26 +527,94 @@ const submitForm = () => {
               type="button"
               @click="goBack"
               class="border border-[#2F27CE] text-[#2F27CE] font-medium py-2.5 px-8 rounded-md hover:bg-[#F8F8FF] transition-colors"
+              :disabled="isSubmitting"
             >
               Kembali
             </button>
             
             <button
               type="submit"
-              class="bg-[#2F27CE] text-white font-medium py-2.5 px-8 rounded-md hover:bg-[#3d3bd4] transition-colors"
+              class="bg-[#2F27CE] text-white font-medium py-2.5 px-8 rounded-md hover:bg-[#3d3bd4] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              :disabled="isSubmitting || isSkillEmpty"
             >
-              Simpan
+              <span v-if="isSubmitting" class="flex items-center">
+                <svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Registering...
+              </span>
+              <span v-else>Register</span>
             </button>
           </div>
         </form>
       </div>
     </main>
     <Footer />
+    
+    <!-- Confirmation Modal -->
+    <div v-if="showConfirmModal" class="fixed inset-0 flex items-center justify-center z-50 overflow-hidden">
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Konfirmasi Pendaftaran</h3>
+        <p class="text-gray-700 mb-6">Proses registrasi memakan waktu estimasi 5-10 menit. Apakah anda yakin ingin melanjutkan pendaftaran?</p>
+        
+        <div class="flex justify-end gap-4">
+          <button 
+            @click="closeConfirmModal" 
+            type="button"
+            class="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+            :disabled="isSubmitting"
+          >
+            Batal
+          </button>
+          <button 
+            @click="confirmSubmit" 
+            type="button"
+            class="px-4 py-2 bg-[#2F27CE] text-white rounded-md hover:bg-[#3d3bd4] disabled:bg-gray-400"
+            :disabled="isSubmitting"
+          >
+            <span v-if="isSubmitting" class="flex items-center">
+              <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            </span>
+            <span v-else>Ya, Daftar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Success Modal -->
+    <div v-if="showSuccessModal" class="fixed inset-0 flex items-center justify-center z-50 overflow-hidden">
+      <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-xl text-center">
+        <!-- Green checkmark -->
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+          <svg class="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+        
+        <h3 class="text-lg font-bold text-gray-900 mb-2">Registrasi Berhasil!</h3>
+        <p class="text-gray-700 mb-6">Akun anda telah berhasil dibuat. Silahkan login dengan email dan password anda.</p>
+        
+        <p class="text-sm text-gray-500">
+          Redirecting to login in {{ countdown }} seconds...
+        </p>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .font-be-vietnam-pro {
   font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+/* Add global styles using :global for body when modals are open */
+:global(.overflow-hidden) {
+  overflow: hidden;
+  padding-right: 15px; /* Prevent layout shift when scrollbar disappears */
 }
 </style>
