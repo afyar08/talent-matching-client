@@ -26,6 +26,7 @@ const AdminLayout = () => import('../admin/components/AdminLayout.vue');
 const AdminDashboard = () => import('../admin/views/Dashboard.vue');
 const DataUser = () => import('../admin/views/DataUser.vue');
 const DataPekerjaan = () => import('../admin/views/DataPekerjaan.vue');
+const DetailDataPekerjaan = () => import('../admin/views/DetailPekerjaan.vue');
 const DataReport = () => import('../admin/views/DataReport.vue');
 const Scraping = () => import('../admin/views/Scraping.vue');
 
@@ -150,8 +151,8 @@ const routes = [
       },
       {
         path: 'lowongan/detail/:id',
-        name: 'admin-lowongan-detail',
-        component: () => import('../admin/views/DetailPekerjaan.vue'),
+        name: 'DetailPekerjaan',
+        component: DetailDataPekerjaan,
       },
       {
         path: 'scraping',
@@ -164,7 +165,7 @@ const routes = [
         component: DataReport,
       },
       {
-        path: 'report/detail/:id',
+        path: 'report/detail/:uid/:jobUrl',
         name: 'admin-report-detail',
         component: () => import('../admin/views/DetailReport.vue'),
       },

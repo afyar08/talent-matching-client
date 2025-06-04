@@ -79,7 +79,7 @@
       <!-- filepath: c:\Users\ACER\OneDrive\Documents\Kuliah\Semester_6\Tugas_Akhir\Project\talent-matching-client\src\admin\views\Scraping.vue -->
       <button
         @click="cancelScraping"
-        :disabled="scrapingStatus !== 'SUCCESS' || isImporting"
+        :disabled="isImporting || matchingStatus"
         class="flex items-center gap-2 bg-[#FFCFC9] text-[#FF6550] hover:bg-[#FFB8AF] font-semibold px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <TrashIcon class="w-4 h-4" />
@@ -128,7 +128,7 @@
       <table class="min-w-full text-sm">
         <thead class="bg-[#2F27CE] text-white font-semibold">
           <tr>
-            <th class="px-4 py-3 text-left">ID</th>
+            <th class="px-4 py-3 text-left">No.</th>
             <th class="px-4 py-3 text-left">
               <div class="flex items-center gap-1">
                 Judul Pekerjaan, Nama Perusahaan
@@ -149,7 +149,7 @@
             </th>
             <th class="px-4 py-3 text-left">
               <div class="flex items-center gap-1">
-                Tanggal Import
+                Waktu Scraping
                 <ChevronUpDownIcon class="w-5 h-5 text-white" />
               </div>
             </th>
@@ -164,9 +164,13 @@
             </td>
             <td class="px-4 py-2">{{ item.province }}</td>
             <td class="px-4 py-2">
-              {{ Array.isArray(item.skills) ? item.skills.join(', ') : item.skills }}
+              {{
+                Array.isArray(item.required_skills)
+                  ? item.required_skills.join(', ')
+                  : item.required_skills
+              }}
             </td>
-            <td class="px-4 py-2">{{ item.scraped_at }}</td>
+            <td class="px-4 py-2">{{ formatDate(item.scraped_at) }}</td>
           </tr>
         </tbody>
       </table>
@@ -180,8 +184,6 @@
       :lastPage="lastPage"
       :total="total"
       :pages="pages"
-      @update:page="val => (page = val)"
-      @update:perPage="val => (perPage = val)"
       @change="handlePaginationChange"
     />
   </div>
@@ -231,6 +233,7 @@
         total: 100,
         lastPage: 10,
         pages: Array.from({ length: 10 }, (_, i) => i + 1),
+        allDataList: [],
         dataList: [],
         scrapingStatus: null,
         matchingStatus: null,
@@ -241,6 +244,7 @@
         refreshInterval: null,
         isScraping: false,
         isImporting: false,
+        refreshInterval: null,
       };
     },
     methods: {
@@ -251,7 +255,17 @@
       formatDate(dateStr) {
         if (!dateStr) return '-';
         const date = new Date(dateStr);
-        return date.toLocaleString();
+        // Format: 04/06/2025 11:47:24 (WIB)
+        return date.toLocaleString('id-ID', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+          timeZone: 'Asia/Jakarta',
+        });
       },
       formatTimeSpent(seconds) {
         if (seconds == null) return '-';
@@ -267,6 +281,17 @@
           .split('_')
           .map(word => word.charAt(0).toUpperCase() + word.slice(1))
           .join(' ');
+      },
+      updatePageData() {
+        const start = (this.page - 1) * this.perPage;
+        const end = start + this.perPage;
+        this.dataList = this.allDataList.slice(start, end);
+      },
+      handlePaginationChange({ page, perPages }) {
+        this.page = Number(page);
+        this.perPage = Number(perPages);
+        this.lastPage = Math.ceil(this.total / this.perPage);
+        this.updatePageData();
       },
       async startScraping() {
         try {
@@ -294,18 +319,23 @@
             this.scrapedJobs = null;
             this.startedAt = null;
             this.timeSpent = null;
+            this.allDataList = [];
             this.dataList = [];
+            this.total = 0;
+            this.lastPage = 1;
           } else {
             this.scrapingStatus = res.data.status;
             this.scrapedJobs = res.data.scraped_jobs;
             this.startedAt = res.data.started_at;
             this.timeSpent = res.data.time_spent;
-            this.dataList = res.data.result || [];
-            if (res.data.status && !['SUCCESS', 'FAILED'].includes(res.data.status)) {
-              this.isScraping = true;
-            } else {
-              this.isScraping = false;
-            }
+            this.allDataList = res.data.result || [];
+            this.total = this.allDataList.length;
+            this.isScraping = !!(
+              this.scrapingStatus &&
+              !['SUCCESS', 'FAILED', 'IMPORTED'].includes(this.scrapingStatus)
+            );
+            this.lastPage = Math.max(1, Math.ceil(this.total / this.perPage));
+            this.updatePageData();
             // Panggil refreshMatching hanya jika status SUCCESS
             if (this.scrapingStatus === 'SUCCESS') {
               this.refreshMatching();
@@ -371,23 +401,21 @@
           this.isImporting = false;
         }
       },
-      handlePaginationChange({ page, perPages }) {
-        this.page = page;
-        this.perPage = perPages;
-        // bisa tambahkan fetch data sesuai page
-      },
     },
     mounted() {
       this.refreshScraping();
-      // Hanya panggil refreshMatching jika scrapingStatus sudah SUCCESS
       this.refreshInterval = setInterval(() => {
-        if (this.isScraping) {
-          this.refreshScraping();
-        }
+        this.refreshScraping();
         if (this.scrapingStatus === 'SUCCESS') {
           this.refreshMatching();
         }
       }, 5000);
+    },
+    beforeUnmount() {
+      if (this.refreshInterval) {
+        clearInterval(this.refreshInterval);
+        this.refreshInterval = null;
+      }
     },
   };
 </script>
