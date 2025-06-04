@@ -86,13 +86,26 @@ const toggleDropdown = () => {
 // Show all available skills when dropdown opened with empty search
 const displayedSkills = computed(() => {
   if (!searchQuery.value && showDropdown.value) {
-    // Show all available skills not already selected
+    // Show all available skills not already selected when dropdown is open with empty search
     return availableSkills.value.filter(skill =>
+      skill && typeof skill === 'string' &&
       !selectedSkills.value.includes(skill)
     );
   }
 
+  // Show filtered skills when user is typing
   return filteredSkills.value;
+});
+
+// Filtered skills based on search query
+const filteredSkills = computed(() => {
+  if (!searchQuery.value) return [];
+
+  return availableSkills.value.filter(skill =>
+    skill && typeof skill === 'string' &&
+    skill.toLowerCase().includes(searchQuery.value.toLowerCase()) &&
+    !selectedSkills.value.includes(skill)
+  );
 });
 
 // Store initial values to detect changes
