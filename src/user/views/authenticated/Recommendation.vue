@@ -30,11 +30,21 @@ const handleFilterChange = (filters) => {
   // Preserve search terms when applying other filters
   filters.job = currentFilters.value.job;
   filters.location = currentFilters.value.location;
-  currentFilters.value = filters;
+  
+  console.log('📌 Recommendation received filter change:', filters);
+  // Update current filters immediately
+  currentFilters.value = { ...filters };
+  
+  // Don't use window.location.reload() as it's too heavy-handed
+  // The force-reload event from JobFilter will trigger necessary updates
+};
 
-  setTimeout(() => {
-    window.location.reload();
-  }, 100);
+// Add a new method to handle force-reload events
+const handleForceReload = () => {
+  console.log('🔄 Force reload triggered in Recommendation');
+  // No need for full page reload - just update our local state
+  // This will reactively update the JobList component
+  currentFilters.value = { ...currentFilters.value };
 };
 
 // Toggle mobile filter visibility
@@ -148,7 +158,11 @@ onMounted(() => {
               </button>
             </div>
             <!-- Pass isRecommendationPage prop -->
-            <JobFilter @filter-change="handleFilterChange" :isRecommendationPage="true" />
+            <JobFilter 
+              @filter-change="handleFilterChange" 
+              @force-reload="handleForceReload"
+              :isRecommendationPage="true" 
+            />
           </div>
         </div>
         
