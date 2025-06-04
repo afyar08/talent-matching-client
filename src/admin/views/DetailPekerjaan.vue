@@ -70,11 +70,11 @@ const jobId = route.params.id;
 const job = ref({
   job_url: "https://glints.com/id/opportunities/jobs/data-analyst-and-market-research/342cc96b-cf61-4e91-b810-76561b9a7fb1",
   image_url: "https://images.glints.com/unsafe/1920x0/glints-dashboard.oss-ap-southeast-1.aliyuncs.com/company-logo/3746f775d7d2342985e93ed625c2d2af.png",
-  job_title: "Data Analyst & Market Research",
-  company_name: "Waschen Alora Indonesia",
-  subdistrict: "Cimanggis",
-  city: "Depok",
-  province: "Jawa Barat",
+  job_title: "Frontend Developer",
+  company_name: "PT Gojek Indonesia",
+  subdistrict: "Kebayoran Baru",
+  city: "Jakarta Selatan",
+  province: "DKI Jakarta",
   salary_min: 4000000,
   salary_max: 7000000,
   salary_unit: "Month",
@@ -84,13 +84,13 @@ const job = ref({
   education_level: "Diploma (D1 - D4)",
   experience: "1-3 years",
   required_skills: [
-    "Statistical Data Analysis",
-    "Data Analytics",
-    "Microsoft Excel",
-    "SQL",
-    "Power BI"
+    "Javascript",
+    "CSS",
+    "Ajax",
+    "HTML",
+    "React.js"
   ],
-  job_description: "<p><strong>Tugas dan Tanggung Jawab</strong>:<ul><li>Menganalisis data pemasaran</li><li>Mengembangkan dashboard</li></ul></p><p><strong>Keahlian:</strong><ul><li>Excel</li><li>SQL</li></ul></p>"
+  job_description: "<p><strong>Tugas dan Tanggung Jawab</strong>:<ul><li>Mengembangkan dan memelihara antarmuka pengguna menggunakan React.js dan teknologi frontend lainnya.</li><li>Mengintegrasikan data dari API menggunakan Ajax atau fetch API.</li></ul></p><p><strong>Kualifikasi:</strong><ul><li>Menguasai JavaScript (ES6+), HTML5, dan CSS3 dengan baik.</li><li>Berpengalaman menggunakan React.js untuk membangun aplikasi skala menengah hingga besar.</li></ul></p>"
 });
 
 function formatRupiah(value) {
