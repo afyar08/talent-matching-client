@@ -208,6 +208,7 @@ router.beforeEach(async (to, from, next) => {
   let isMaintenance = false;
   try {
     isMaintenance = await maintenanceService.getMaintenanceStatus();
+    console.log('Maintenance status:', isMaintenance);
   } catch (e) {
     isMaintenance = false;
   }
