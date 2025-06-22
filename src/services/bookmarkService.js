@@ -1,19 +1,18 @@
 import axios from "axios";
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
+import apiClient from "../utils/apiClient";
 
 export const bookmarkService = {
   // Toggle bookmark status
-  async toggleBookmark(userUid, jobUrl) {
+  async toggleBookmark(jobUrl) {
+    console.log("Toggling bookmark for job URL:", jobUrl);
     try {
-      console.log("Nilai yang dikirim:", {
-        user_uid: userUid, // Pastikan ini berisi nilai
-        job_url: jobUrl, // Pastikan ini berisi nilai
-      });
-      const response = await axios.post(`${API_BASE_URL}/bookmark/`, {
-        user_uid: userUid,
+      const response = await apiClient.post(`job-seeker/bookmark/change-status/`, {
         job_url: jobUrl,
+      }, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("user-token")}`,
+        },
       });
       return response.data;
     } catch (error) {
@@ -23,10 +22,13 @@ export const bookmarkService = {
   },
 
   // Get all bookmarked jobs for user
-  async getBookmarkedJobs(userUid) {
+  async getBookmarkedJobs() {
     try {
-      const response = await axios.get(`${API_BASE_URL}/bookmark/`, {
-        params: { user_uid: userUid },
+      const response = await apiClient.get(`job-seeker/bookmark/list/`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("user-token")}`,
+        },
       });
       return response.data;
     } catch (error) {
@@ -36,11 +38,15 @@ export const bookmarkService = {
   },
 
   // Check bookmark status for multiple jobs
-  async checkBookmarkStatus(userUid, jobUrls) {
+  async checkBookmarkStatus(jobUrls) {
     try {
-      const response = await axios.post(`${API_BASE_URL}/bookmark/status/`, {
-        user_uid: userUid,
+      const response = await apiClient.post(`job-seeker/bookmark/check/`, {
         job_urls: jobUrls,
+      },{
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("user-token")}`,
+        },
       });
       return response.data;
     } catch (error) {

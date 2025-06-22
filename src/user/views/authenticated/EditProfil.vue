@@ -165,7 +165,6 @@ const confirmSubmit = async () => {
     isSubmitting.value = true;
     
     const response = await authService.updateProfile({
-      email: email.value,
       name: fullName.value,
       skills: selectedSkills.value,
       profile_image: imageFile.value
@@ -212,9 +211,10 @@ const loadSkills = async () => {
   try {
     isLoadingSkills.value = true;
     const response = await skillService.getAllSkills();
-    availableSkills.value = response.skills || [];
+    availableSkills.value = (response.data.skills || []).map(skill => skill.name);
   } catch (error) {
     availableSkills.value = [];
+    console.error('Failed to load skills:', error);
     // Optional: tampilkan error toast
   } finally {
     isLoadingSkills.value = false;
@@ -224,16 +224,19 @@ const loadSkills = async () => {
 onMounted(async () => {
   try {
     const data = await authService.getDefaultProfile();
+    console.log('Default profile data loaded:', data.data);
     fullName.value = data.name || '';
     email.value = data.email || '';
     selectedSkills.value = data.skills || [];
     imagePreview.value = data.profile_image_url
-      ? (data.profile_image_url.startsWith('http') ? data.profile_image_url : `http://localhost:8000${data.profile_image_url}`)
-      : '';
+      ? (data.profile_image_url.startsWith('http') 
+         ? data.profile_image_url 
+         : `http://localhost:8000${data.profile_image_url}`)
+      : 'https://randomuser.me/api/portraits/men/36.jpg';
     originalProfile.value = {
       name: data.name || '',
       skills: [...(data.skills || [])],
-      imageUrl: imagePreview.value
+      imageUrl: 'https://randomuser.me/api/portraits/men/36.jpg'
     };
   } catch (error) {
     console.error('Failed to load profile:', error);

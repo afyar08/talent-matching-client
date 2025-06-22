@@ -87,33 +87,31 @@ const loadFilterOptions = async () => {
   try {
     isLoadingFilterOptions.value = true;
     const response = await jobService.getFilterOptions();
-    
-    if (response.success) {
-      const data = response.data;
-      
-      // Update sections with data from backend
-      const jobTypeSection = sections.value.find(s => s.id === 'job-type');
-      if (jobTypeSection) {
-        jobTypeSection.options = data.jobTypes || [];
-      }
-      
-      const workArrangementSection = sections.value.find(s => s.id === 'work-arrangement');
-      if (workArrangementSection) {
-        workArrangementSection.options = data.workArrangements || [];
-      }
-      
-      const experienceSection = sections.value.find(s => s.id === 'experience');
-      if (experienceSection) {
-        experienceSection.options = data.experiences || [];
-      }
-      
-      const educationSection = sections.value.find(s => s.id === 'education');
-      if (educationSection) {
-        educationSection.options = data.educationLevels || [];
-      }
-      
-      console.log('Filter options loaded from backend:', data);
+
+    const data = response.data;
+
+    // Update sections with data from backend
+    const jobTypeSection = sections.value.find(s => s.id === 'job-type');
+    if (jobTypeSection) {
+      jobTypeSection.options = data.jobTypes || [];
     }
+
+    const workArrangementSection = sections.value.find(s => s.id === 'work-arrangement');
+    if (workArrangementSection) {
+      workArrangementSection.options = data.workArrangements || [];
+    }
+
+    const experienceSection = sections.value.find(s => s.id === 'experience');
+    if (experienceSection) {
+      experienceSection.options = data.experiences || [];
+    }
+
+    const educationSection = sections.value.find(s => s.id === 'education');
+    if (educationSection) {
+      educationSection.options = data.educationLevels || [];
+    }
+
+    console.log('Filter options loaded from backend:', data);
   } catch (error) {
     console.error('Error loading filter options:', error);
     // Fallback ke default options jika API gagal
@@ -134,7 +132,7 @@ const useDefaultFilterOptions = () => {
       { id: 'contract', label: 'Contract' }
     ];
   }
-  
+
   const workArrangementSection = sections.value.find(s => s.id === 'work-arrangement');
   if (workArrangementSection) {
     workArrangementSection.options = [
@@ -143,7 +141,7 @@ const useDefaultFilterOptions = () => {
       { id: 'on-site', label: 'On-site' }
     ];
   }
-  
+
   const experienceSection = sections.value.find(s => s.id === 'experience');
   if (experienceSection) {
     experienceSection.options = [
@@ -156,7 +154,7 @@ const useDefaultFilterOptions = () => {
       { id: 'more-than-10', label: 'Lebih dari 10 tahun' }
     ];
   }
-  
+
   const educationSection = sections.value.find(s => s.id === 'education');
   if (educationSection) {
     educationSection.options = [
@@ -176,10 +174,10 @@ const useDefaultFilterOptions = () => {
 const checkSalaryValidity = () => {
   const minValue = selectedFilters.value.salaryMin === '' ? null : Number(selectedFilters.value.salaryMin);
   const maxValue = selectedFilters.value.salaryMax === '' ? null : Number(selectedFilters.value.salaryMax);
-  
+
   if (minValue !== null && maxValue !== null) {
     const isInvalid = minValue > maxValue;
-    
+
     if (isInvalid) {
       if (isFirstInput.value) {
         clearTimeout(errorDebounceTimer);
@@ -194,10 +192,10 @@ const checkSalaryValidity = () => {
       showSalaryError.value = false;
       clearTimeout(errorDebounceTimer);
     }
-    
+
     return !isInvalid;
   }
-  
+
   showSalaryError.value = false;
   clearTimeout(errorDebounceTimer);
   return true;
@@ -229,15 +227,15 @@ const updateFiltersFromQuery = (query) => {
     // Default berdasarkan page type
     selectedFilters.value.sortOrder = props.isRecommendationPage ? 'similarity-desc' : 'descending';
   }
-  
+
   selectedFilters.value.salaryMin = query.salaryMin || '';
   selectedFilters.value.salaryMax = query.salaryMax || '';
-  
+
   const parseArrayParam = (param) => {
     if (!param) return [];
     return param.split(',').filter(Boolean);
   };
-  
+
   selectedFilters.value.jobTypes = parseArrayParam(query.jobTypes);
   selectedFilters.value.workArrangements = parseArrayParam(query.workArrangements);
   selectedFilters.value.experiences = parseArrayParam(query.experiences);
@@ -275,78 +273,78 @@ const updateSortOptions = () => {
 // Apply filters with improved synchronization and special handling for recommendation pages
 const applyFilters = async () => {
   const isSalaryRangeValid = checkSalaryValidity();
-  
+
   if (!isSalaryRangeValid) {
     showSalaryError.value = true;
     return;
   }
-  
+
   // Create a consistent filter state object to use for both URL and events
   const filterState = {
     ...JSON.parse(JSON.stringify(selectedFilters.value)) // Deep clone to prevent reference issues
   };
-  
+
   const { job, location } = route.query;
   const orderedQuery = {};
-  
+
   if (filterState.sortOrder) {
     orderedQuery.sortOrder = filterState.sortOrder;
   }
-  
+
   if (job) orderedQuery.job = job;
   if (location) orderedQuery.location = location;
-  
+
   if (filterState.salaryMin) {
     orderedQuery.salaryMin = filterState.salaryMin;
   }
   if (filterState.salaryMax) {
     orderedQuery.salaryMax = filterState.salaryMax;
   }
-  
+
   // Process array values consistently
   if (filterState.jobTypes.length > 0) {
     orderedQuery.jobTypes = filterState.jobTypes.join(',');
   }
-  
+
   if (filterState.workArrangements.length > 0) {
     orderedQuery.workArrangements = filterState.workArrangements.join(',');
   }
-  
+
   if (filterState.experiences.length > 0) {
     orderedQuery.experiences = filterState.experiences.join(',');
   }
-  
+
   if (filterState.educationLevels.length > 0) {
     orderedQuery.educationLevels = filterState.educationLevels.join(',');
   }
-  
+
   console.log(`🔄 Applying filters on ${props.isRecommendationPage ? 'RECOMMENDATION' : 'REGULAR'} page:`, orderedQuery);
-  
+
   try {
     // First emit the change event so parent components can prepare
     emit('filter-change', filterState);
-    
+
     // Then update URL - use await to ensure it completes
     await router.replace({
       path: route.path,
       query: orderedQuery
     });
-    
+
     // Use longer timeout for recommendation page to ensure data is loaded properly
     const timeoutMs = props.isRecommendationPage ? 100 : 50;
-    
+
     // Finally force reload after URL is updated
     setTimeout(() => {
       // Double-check that filter state matches URL query before forcing reload
       const currentQuery = route.query;
       let filtersMatch = true;
-      
+
       // Check if current URL matches our expected filters
       if (currentQuery.sortOrder !== orderedQuery.sortOrder) {
         console.warn('Sort order mismatch between expected and actual URL');
         filtersMatch = false;
       }
-      
+
       // If on recommendation page and filters don't match, try once more
       if (props.isRecommendationPage && !filtersMatch) {
         console.warn('Filter mismatch detected on recommendation page, retrying...');
@@ -378,30 +376,30 @@ const clearFilters = async () => {
     experiences: [],
     educationLevels: []
   };
-  
+
   // Apply defaults to selected filters
   selectedFilters.value = { ...defaultFilters };
-  
+
   const { job, location } = route.query;
   const orderedQuery = {};
   if (job) orderedQuery.job = job;
   if (location) orderedQuery.location = location;
-  
+
   // Add the default sort order to query
   orderedQuery.sortOrder = defaultFilters.sortOrder;
-  
+
   console.log('🗑️ Clearing filters to defaults:', defaultFilters);
-  
+
   try {
     // First emit the change event
     emit('filter-change', defaultFilters);
-    
+
     // Then update URL - use await to ensure it completes
     await router.push({
       path: route.path,
       query: orderedQuery
     });
-    
+
     // Finally force reload after URL is updated
     setTimeout(() => {
       emit('force-reload');
@@ -444,7 +442,7 @@ watch(() => selectedFilters.value.salaryMax, (newVal) => {
 watch(() => route.query, (newQuery) => {
   console.log('📌 Route query changed:', newQuery);
   updateFiltersFromQuery(newQuery);
-  
+
   // Force radio buttons to update by reassigning sortOrder
   // This fixes potential sync issues with the radio buttons not reflecting URL state
   if (newQuery.sortOrder) {
@@ -457,7 +455,7 @@ watch(() => route.query, (newQuery) => {
 // Watch untuk props change - UPDATE untuk respek URL parameter
 watch(() => props.isRecommendationPage, (newValue) => {
   updateSortOptions();
-  
+
   // Only set default if no URL parameter exists
   if (!route.query.sortOrder) {
     // Reset sort order when page type changes only if no URL parameter
@@ -473,7 +471,7 @@ watch(() => props.isRecommendationPage, (newValue) => {
 onMounted(async () => {
   updateSortOptions();
   await loadFilterOptions();
-  
+
   // Ensure URL parameter takes precedence
   if (route.query.sortOrder) {
     selectedFilters.value.sortOrder = route.query.sortOrder;
@@ -497,9 +495,12 @@ onUnmounted(() => {
     <!-- Loading state -->
     <div v-if="isLoadingFilterOptions" class="text-center py-4">
       <div class="inline-flex items-center">
-        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none"
+          viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+          </path>
         </svg>
         Loading filter options...
       </div>
@@ -509,110 +510,82 @@ onUnmounted(() => {
     <div v-else>
       <!-- Apply Filter Button at top -->
       <div class="mb-4 flex gap-2">
-        <button 
-          @click="applyFilters" 
-          class="flex-1 bg-[#E5E1FF] text-[#2F27CE] font-semibold py-2 rounded-md hover:bg-[#d6d0ff] transition-colors flex items-center justify-center"
-        >
-          <svg class="w-5 h-5 mr-1 transform scale-x-[-1]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+        <button @click="applyFilters"
+          class="flex-1 bg-[#E5E1FF] text-[#2F27CE] font-semibold py-2 rounded-md hover:bg-[#d6d0ff] transition-colors flex items-center justify-center">
+          <svg class="w-5 h-5 mr-1 transform scale-x-[-1]" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z">
+            </path>
           </svg>
           Terapkan
         </button>
-        
-        <button 
-          @click="clearFilters" 
-          class="flex-1 bg-[#FFE5E5] text-[#FF3A3A] font-bold py-2 rounded-md hover:bg-[#ffd6d6] transition-colors flex items-center justify-center"
-        >
-          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+
+        <button @click="clearFilters"
+          class="flex-1 bg-[#FFE5E5] text-[#FF3A3A] font-bold py-2 rounded-md hover:bg-[#ffd6d6] transition-colors flex items-center justify-center">
+          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+            </path>
           </svg>
           Reset
         </button>
       </div>
-      
+
       <!-- Filter sections -->
       <div class="filter-sections space-y-4">
         <!-- Sort order section -->
         <div class="filter-section border-b border-t border-gray-200 pb-4 pt-4">
-          <div 
-            class="section-header flex justify-between items-center cursor-pointer mb-3"
-            @click="toggleSection('sort')"
-          >
+          <div class="section-header flex justify-between items-center cursor-pointer mb-3"
+            @click="toggleSection('sort')">
             <h4 class="font-semibold">Urutkan</h4>
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              class="h-5 w-5 transform transition-transform"
-              :class="{'rotate-180': !sections.find(s => s.id === 'sort').isOpen}"
-              fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor"
-            >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform transition-transform"
+              :class="{ 'rotate-180': !sections.find(s => s.id === 'sort').isOpen }" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
           </div>
-          
+
           <div v-if="sections.find(s => s.id === 'sort').isOpen" class="section-content">
             <div class="space-y-2">
-              <div v-for="option in sections.find(s => s.id === 'sort').options" :key="option.id" class="flex items-center">
-                <input 
-                  type="radio"
-                  :id="option.id"
-                  v-model="selectedFilters.sortOrder"
-                  :value="option.id"
-                  class="form-radio h-4 w-4 text-[#2F27CE] border-gray-300 focus:ring-[#2F27CE]"
-                />
+              <div v-for="option in sections.find(s => s.id === 'sort').options" :key="option.id"
+                class="flex items-center">
+                <input type="radio" :id="option.id" v-model="selectedFilters.sortOrder" :value="option.id"
+                  class="form-radio h-4 w-4 text-[#2F27CE] border-gray-300 focus:ring-[#2F27CE]" />
                 <label :for="option.id" class="ml-2 text-md">{{ option.label }}</label>
               </div>
             </div>
           </div>
         </div>
-        
+
         <!-- Salary range section -->
         <div class="filter-section border-b border-gray-200 pb-4">
-          <div 
-            class="section-header flex justify-between items-center cursor-pointer mb-3"
-            @click="toggleSection('salary-range')"
-          >
+          <div class="section-header flex justify-between items-center cursor-pointer mb-3"
+            @click="toggleSection('salary-range')">
             <h4 class="font-semibold">Range Gaji</h4>
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              class="h-5 w-5 transform transition-transform"
-              :class="{'rotate-180': !sections.find(s => s.id === 'salary-range').isOpen}"
-              fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor"
-            >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform transition-transform"
+              :class="{ 'rotate-180': !sections.find(s => s.id === 'salary-range').isOpen }" fill="none"
+              viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
           </div>
-          
+
           <div v-if="sections.find(s => s.id === 'salary-range').isOpen" class="section-content">
             <div class="flex gap-2 items-center">
               <div class="w-1/2">
                 <label for="salary-min" class="block text-sm text-gray-500 mb-1">Rp</label>
-                <input 
-                  type="number"
-                  id="salary-min"
-                  v-model="selectedFilters.salaryMin"
-                  placeholder="Minimal"
+                <input type="number" id="salary-min" v-model="selectedFilters.salaryMin" placeholder="Minimal"
                   class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1"
-                  :class="{'focus:ring-red-500 border-red-300': showSalaryError, 'focus:ring-[#2F27CE]': !showSalaryError}"
-                  min="0"
-                  @input="onMinSalaryInput"
-                />
+                  :class="{ 'focus:ring-red-500 border-red-300': showSalaryError, 'focus:ring-[#2F27CE]': !showSalaryError }"
+                  min="0" @input="onMinSalaryInput" />
               </div>
               <div class="w-1/2">
                 <label for="salary-max" class="block text-sm text-gray-500 mb-1">Rp</label>
-                <input 
-                  type="number"
-                  id="salary-max"
-                  v-model="selectedFilters.salaryMax"
-                  placeholder="Maksimal"
-                  class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1" 
-                  :class="{'focus:ring-red-500 border-red-300': showSalaryError, 'focus:ring-[#2F27CE]': !showSalaryError}"
-                  min="0"
-                  @input="onMaxSalaryInput"
-                />
+                <input type="number" id="salary-max" v-model="selectedFilters.salaryMax" placeholder="Maksimal"
+                  class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  :class="{ 'focus:ring-red-500 border-red-300': showSalaryError, 'focus:ring-[#2F27CE]': !showSalaryError }"
+                  min="0" @input="onMaxSalaryInput" />
               </div>
             </div>
             <div v-if="showSalaryError" class="text-red-500 text-sm mt-1">
@@ -620,54 +593,38 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
-        
+
         <!-- Other filter sections (checkbox-based) -->
         <template v-for="(section, index) in sections.filter(s => s.type === 'checkbox')" :key="section.id">
-          <div 
-            class="filter-section pb-4" 
-            :class="{'border-b border-gray-200': index < sections.filter(s => s.type === 'checkbox').length - 1}"
-          >
-            <div 
-              class="section-header flex justify-between items-center cursor-pointer mb-3"
-              @click="toggleSection(section.id)"
-            >
+          <div class="filter-section pb-4"
+            :class="{ 'border-b border-gray-200': index < sections.filter(s => s.type === 'checkbox').length - 1 }">
+            <div class="section-header flex justify-between items-center cursor-pointer mb-3"
+              @click="toggleSection(section.id)">
               <h4 class="font-semibold">{{ section.title }}</h4>
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                class="h-5 w-5 transform transition-transform"
-                :class="{'rotate-180': !section.isOpen}"
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-              >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform transition-transform"
+                :class="{ 'rotate-180': !section.isOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </div>
-            
+
             <div v-if="section.isOpen" class="section-content space-y-2">
               <div v-for="option in section.options" :key="option.id" class="flex items-center">
-                <input 
-                  type="checkbox"
-                  :id="option.id"
-                  v-model="selectedFilters[section.id === 'job-type' ? 'jobTypes' : 
-                            section.id === 'work-arrangement' ? 'workArrangements' : 
-                            section.id === 'experience' ? 'experiences' : 'educationLevels']"
+                <input type="checkbox" :id="option.id" v-model="selectedFilters[section.id === 'job-type' ? 'jobTypes' :
+                  section.id === 'work-arrangement' ? 'workArrangements' :
+                    section.id === 'experience' ? 'experiences' : 'educationLevels']"
                   :value="option.value || option.id"
-                  class="form-checkbox h-4 w-4 text-[#2F27CE] rounded border-gray-300 focus:ring-[#2F27CE]"
-                />
+                  class="form-checkbox h-4 w-4 text-[#2F27CE] rounded border-gray-300 focus:ring-[#2F27CE]" />
                 <label :for="option.id" class="ml-2 text-md">{{ option.label }}</label>
               </div>
             </div>
           </div>
         </template>
       </div>
-      
+
       <!-- Apply filters button (mobile only) -->
       <div class="mt-6 md:hidden">
-        <button 
-          @click="applyFilters" 
-          class="w-full bg-[#2F27CE] text-white font-semibold py-2 rounded-md hover:bg-[#261fb3] transition-colors"
-        >
+        <button @click="applyFilters"
+          class="w-full bg-[#2F27CE] text-white font-semibold py-2 rounded-md hover:bg-[#261fb3] transition-colors">
           Terapkan Filter
         </button>
       </div>

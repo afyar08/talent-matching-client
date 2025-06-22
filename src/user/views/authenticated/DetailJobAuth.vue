@@ -87,7 +87,7 @@ const checkBookmarkStatus = async () => {
     if (!isAuthenticated.value || !job.value.job_url) return;
     
     const userUid = getCurrentUserUid();
-    const response = await bookmarkService.checkBookmarkStatus(userUid, [job.value.job_url]);
+    const response = await bookmarkService.checkBookmarkStatus([job.value.job_url]);
     
     if (response.success) {
       isBookmarked.value = response.data[job.value.job_url] || false;
@@ -106,8 +106,7 @@ const toggleBookmark = async () => {
       return;
     }
 
-    const userUid = getCurrentUserUid();
-    const result = await bookmarkService.toggleBookmark(userUid, job.value.job_url);
+    const result = await bookmarkService.toggleBookmark(job.value.job_url);
     
     if (result.success) {
       isBookmarked.value = result.is_bookmarked;

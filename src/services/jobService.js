@@ -1,12 +1,11 @@
 import axios from 'axios'
-
-const API_BASE_URL = 'http://localhost:8000/api'
+import apiClient from '../utils/apiClient';
 
 export const jobService = {
   // Get filter options from database
   async getFilterOptions() {
     try {
-      const response = await axios.get(`${API_BASE_URL}/jobs/filter-options/`, {
+      const response = await apiClient.get(`job-seeker/job/filter-options/`, {
         headers: {
           'Content-Type': 'application/json',
         }
@@ -22,7 +21,7 @@ export const jobService = {
   // Get provinces from database
   async getProvinces() {
     try {
-      const response = await axios.get(`${API_BASE_URL}/jobs/provinces/`, {
+      const response = await apiClient.get(`job-seeker/job/provinces/`, {
         headers: {
           'Content-Type': 'application/json',
         }
@@ -53,11 +52,11 @@ export const jobService = {
         }
       })
       
-      const url = `${API_BASE_URL}/jobs/search/?${params.toString()}`;
+      const url = `job-seeker/job/search/?${params.toString()}`;
       console.log('🚀 Requesting jobs from:', url);
       console.log('📝 Filters sent:', filters);
       
-      const response = await axios.get(url, {
+      const response = await apiClient.get(url, {
         headers: {
           'Content-Type': 'application/json',
         }
@@ -72,7 +71,7 @@ export const jobService = {
         console.log('❌ No jobs found with current filters');
         console.log('🔧 Applied filters:', response.data?.data?.filters_applied);
       }
-      
+      console.log("here")
       return response.data
     } catch (error) {
       console.error('❌ Error searching jobs:', error.response?.data || error.message);
@@ -86,60 +85,58 @@ export const jobService = {
   // Get job recommendations for current user with filters
   async getRecommendedJobs(filters = {}) {
     try {
-      console.log('🚀 Requesting recommended jobs with filters:', filters);
+      const params = new URLSearchParams()
+      
+      // Add all filters as query parameters
+      Object.keys(filters).forEach(key => {
+        if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
+          if (Array.isArray(filters[key])) {
+            if (filters[key].length > 0) {
+              params.append(key, filters[key].join(','))
+            }
+          } else {
+            params.append(key, filters[key])
+          }
+        }
+      })
 
-      // Use token from localStorage for authenticated request
-      const token = localStorage.getItem('token');
+      const url = `job-seeker/job/recommendations/?${params.toString()}`;
       
-      // Get user email from localStorage
-      const userEmail = localStorage.getItem('user-email');
-      
-      if (!userEmail) {
-        throw new Error('User email not found. Please login again.');
-      }
-      
-      // Include user email in the request body
-      const requestData = {
-        ...filters,
-        user_email: userEmail
-      };
-      
-      console.log('📧 Including user email:', userEmail);
-      
-      const response = await axios.post(`${API_BASE_URL}/jobs/recommendations/`, requestData, {
+      const response = await apiClient.get(url, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : ''
+          Authorization: `Bearer ${localStorage.getItem('user-token')}`,
         }
-      });
+      })
       
-      console.log('✅ Recommended jobs response:', response.data);
-      console.log('📊 Number of recommended jobs received:', response.data?.data?.jobs?.length || 0);
+      console.log('✅ Jobs response:', response.data);
+      console.log('📊 Number of jobs received:', response.data?.data?.jobs?.length || 0);
       
       if (response.data?.data?.jobs?.length > 0) {
-        console.log('🔍 Sample recommended job:', response.data.data.jobs[0]);
+        console.log('🔍 Sample job:', response.data.data.jobs[0]);
       } else {
-        console.log('❌ No recommended jobs found with current filters');
+        console.log('❌ No jobs found with current filters');
+        console.log('🔧 Applied filters:', response.data?.data?.filters_applied);
       }
-      
-      return response.data;
+      console.log("here")
+      return response.data
     } catch (error) {
-      console.error('❌ Error getting job recommendations:', error.response?.data || error.message);
+      console.error('❌ Error searching jobs:', error.response?.data || error.message);
       if (error.response?.status) {
         console.error('Status:', error.response.status);
       }
-      throw error;
+      throw error
     }
   },
 
   // Get job detail by 36 character ID suffix
-  async getJobById(jobIdSuffix) {
+  async getJobById(jobUrl) {
     try {
-      console.log('🚀 Fetching job detail for ID:', jobIdSuffix);
+      console.log('🚀 Fetching job detail for ID:', jobUrl);
 
-      const response = await axios.get(`${API_BASE_URL}/jobs/detail/`, {
+      const response = await apiClient.get(`job-seeker/job/detail`, {
         params: {
-          id: jobIdSuffix
+          url: jobUrl
         },
         headers: {
           'Content-Type': 'application/json'
@@ -148,7 +145,7 @@ export const jobService = {
 
       console.log('✅ Job detail response:', response.data);
       
-      if (response.data?.success && response.data?.data?.job) {
+      if (response.data?.data?.job) {
         return response.data.data.job;
       } else {
         throw new Error('Job not found or invalid response format');

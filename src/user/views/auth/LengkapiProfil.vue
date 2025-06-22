@@ -73,8 +73,7 @@ const loadSkills = async () => {
   try {
     isLoadingSkills.value = true;
     const response = await skillService.getAllSkills();
-    availableSkills.value = (response.skills || [])
-      .filter(skill => skill && typeof skill === 'string');
+    availableSkills.value = (response.data.skills || []).map(skill => skill.name);
     console.log('Loaded skills from database:', availableSkills.value);
   } catch (error) {
     console.error('Error loading skills:', error);
@@ -245,7 +244,14 @@ const confirmSubmit = async () => {
     console.log('Submitting registration with skills:', selectedSkills.value);
 
     // Call registration API
-    const response = await authService.registerWithSkills(formData);
+    console.log('Submitting registration data:', {
+      name: fullName.value,
+      email: registrationData.value.email,
+      skills: selectedSkills.value,
+      profile_picture: imageFile.value ? imageFile.value.name : 'No picture uploaded'
+    });
+    const response = await authService.register(formData);
+    const userData = response.data.user
 
     console.log('Registration successful:', response);
 
@@ -261,17 +267,6 @@ const confirmSubmit = async () => {
 
     const expirationDate = new Date();
     expirationDate.setDate(expirationDate.getDate() + 1);
-
-    // Get user data from the correct location in the response
-    // Check if response.data exists, otherwise use response directly
-    const userData = response.data?.user || response.user;
-
-    if (!userData) {
-      console.error('User data not found in response:', response);
-      throw new Error('User data not found in response');
-    }
-
-    console.log("User data structure:", userData);
 
     // Get tokens from the correct location
     const accessToken = response.data?.tokens?.access || response.data?.access || 

@@ -1,12 +1,11 @@
 import axios from 'axios'
-
-const API_BASE_URL = 'http://localhost:8000/api'
+import apiClient from '../utils/apiClient'
 
 export const skillService = {
   // Get all skills
   async getAllSkills() {
     try {
-      const response = await axios.get(`${API_BASE_URL}/skills/`, {
+      const response = await apiClient.get(`skill/`, {
         headers: {
           'Content-Type': 'application/json',
         }

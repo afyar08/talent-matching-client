@@ -5,6 +5,7 @@
   import { useRouter } from 'vue-router';
   import { setInStorage } from '../../../utils/localStorage';
   import { toastService } from '../../../utils/toastService';
+  import { authService } from '../../../services/authService';
   import axios from 'axios';
 
   const router = useRouter();
@@ -33,23 +34,12 @@
 
     try {
       console.log('Attempting login...');
-      const response = await axios.post(
-        'http://localhost:8000/api/auth/sign-in/',
-        {
-          email: email.value,
-          password: password.value,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await authService.login(email.value, password.value);
 
       console.log('Response data:', response.data);
 
       // Check for tokens in nested structure OR direct structure
-      const hasTokens = response.data.tokens?.access || response.data.access;
+      const hasTokens = response.data.access;
 
       if (hasTokens) {
         console.log('Login successful, extracting tokens...');

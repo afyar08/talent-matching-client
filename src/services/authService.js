@@ -1,45 +1,46 @@
-import axios from "axios";
-import { getFromStorage } from "../utils/localStorage";
-
-const API_BASE_URL = "http://localhost:8000/api";
+import axios from 'axios';
+import { getFromStorage } from '../utils/localStorage';
+import apiClient from '../utils/apiClient';
 
 export const authService = {
   // Check if email is available
   async checkEmailAvailability(email) {
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/auth/check-email/`,
+      const response = await apiClient.post(
+        `/auth/check-email/`,
         {
           email: email,
         },
         {
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
         }
       );
-      return { available: true, message: response.data.message };
+      return response.data;
     } catch (error) {
       if (error.response?.status === 400) {
         // Email already exists
         return {
           available: false,
-          message: error.response.data.message || "Email already exists",
+          message: error.response.data.message || 'Email already exists',
         };
       }
       throw error;
     }
   },
 
-  // Register user with skills and profile picture
-  async registerWithSkills(formData) {
+  async login(email, password) {
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/auth/sign-up/`,
-        formData,
+      const response = await apiClient.post(
+        `/auth/sign-in/`,
+        {
+          email: email,
+          password: password,
+        },
         {
           headers: {
-            "Content-Type": "multipart/form-data",
+            'Content-Type': 'application/json',
           },
         }
       );
@@ -49,13 +50,14 @@ export const authService = {
     }
   },
 
-  // Regular register method (fallback)
-  async register(userData) {
+  // Register user with skills and profile picture
+  async register(formData) {
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/auth/sign-up/`,
-        userData
-      );
+      const response = await apiClient.post(`/auth/sign-up/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;
@@ -64,40 +66,39 @@ export const authService = {
 
   async getDefaultProfile() {
     try {
-      const email = localStorage.getItem("user-email");
-      const response = await axios.get(`${API_BASE_URL}/profile/default/`, {
-        params: { email },
+      const token = localStorage.getItem('user-token');
+      const response = await apiClient.get(`job-seeker/profile/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
-      return response.data;
+      return response.data.data;
     } catch (error) {
       throw error;
     }
   },
 
-  async updateProfile({ email, name, skills, profile_image }) {
+  async updateProfile({ name, skills, profile_image }) {
     try {
       const formData = new FormData();
-      const uid = getFromStorage("user-id");
-      formData.append("uid", uid);
-      formData.append("email", email);
-      if (name) formData.append("name", name);
+      const token = localStorage.getItem('user-token');
+      const uid = getFromStorage('user-id');
+      if (name) formData.append('name', name);
       if (skills && skills.length > 0) {
-      skills.forEach(skill => formData.append("skills", skill));
-    }
-      if (profile_image) formData.append("profile_image", profile_image);
+        skills.forEach(skill => formData.append('skills', skill));
+      }
+      if (profile_image) formData.append('profile_image', profile_image);
       for (let pair of formData.entries()) {
-        console.log(pair[0] + ": " + pair[1]);
+        console.log(pair[0] + ': ' + pair[1]);
       }
 
-      const response = await axios.patch(
-        `${API_BASE_URL}/profile/edit/`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const response = await apiClient.put(`job-seeker/profile/${uid}/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;

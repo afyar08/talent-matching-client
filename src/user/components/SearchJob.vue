@@ -23,8 +23,9 @@ const loadProvinces = async () => {
   try {
     isLoadingProvinces.value = true;
     const response = await jobService.getProvinces();
+    console.log(response)
     
-    if (response.success && response.data.provinces) {
+    if (response.data.provinces) {
       // Mapping dari database response ke format yang dibutuhkan
       provinces.value = response.data.provinces.map(province => province.label);
       console.log('✅ Provinces loaded from database:', provinces.value);

@@ -62,13 +62,10 @@ const getCurrentUserUid = () => {
 // Load bookmarked jobs from server
 const loadBookmarkedJobs = async () => {
   try {
-    const userUid = getCurrentUserUid();
-    if (!userUid) return;
-
     if (props.bookmarkedOnly) {
       // Load bookmarked jobs from server
-      const response = await bookmarkService.getBookmarkedJobs(userUid);
-      if (response.success) {
+      const response = await bookmarkService.getBookmarkedJobs();
+      if (response) {
         jobs.value = response.data.jobs.map((job, index) => transformJobData(job, index));
         filteredJobs.value = [...jobs.value];
         
@@ -81,9 +78,9 @@ const loadBookmarkedJobs = async () => {
       // For regular job list, check bookmark status
       if (jobs.value.length > 0) {
         const jobUrls = jobs.value.map(job => job.job_url);
-        const statusResponse = await bookmarkService.checkBookmarkStatus(userUid, jobUrls);
+        const statusResponse = await bookmarkService.checkBookmarkStatus(jobUrls);
         
-        if (statusResponse.success) {
+        if (statusResponse.data) {
           bookmarkedJobs.value = statusResponse.data;
         }
       }
@@ -96,17 +93,12 @@ const loadBookmarkedJobs = async () => {
 // Toggle bookmark status
 const toggleBookmark = async (jobUrl) => {
   try {
-    const userUid = getCurrentUserUid();
-    if (!userUid) {
-      console.error('User not authenticated');
-      return;
-    }
-
-    const result = await bookmarkService.toggleBookmark(userUid, jobUrl);
+    const result = await bookmarkService.toggleBookmark(jobUrl);
+    console.log('Toggle bookmark result:', result.data.is_bookmarked);
     
-    if (result.success) {
+    if (result) {
       // Update local state
-      if (result.is_bookmarked) {
+      if (result.data.is_bookmarked) {
         bookmarkedJobs.value[jobUrl] = true;
       } else {
         delete bookmarkedJobs.value[jobUrl];
@@ -118,7 +110,7 @@ const toggleBookmark = async (jobUrl) => {
         jobs.value = jobs.value.filter(job => job.job_url !== jobUrl);
       }
       
-      console.log(`Bookmark ${result.action}:`, jobUrl);
+      console.log(`Bookmark ${result.message}:`, jobUrl);
     }
   } catch (error) {
     console.error('Error toggling bookmark:', error);
@@ -171,9 +163,10 @@ const loadJobs = async () => {
       } else {
         // Regular job search for non-recommendation pages
         response = await jobService.searchJobs(apiFilters);
+        console.log('Response from job search API:', response);
       }
       
-      if (response.success && response.data && response.data.jobs) {
+      if (response.data && response.data.jobs) {
         const transformedJobs = response.data.jobs.map((job, index) => transformJobData(job, index));
         jobs.value = transformedJobs;
         filteredJobs.value = [...transformedJobs];

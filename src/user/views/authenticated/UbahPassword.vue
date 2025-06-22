@@ -99,7 +99,7 @@ const submitForm = async () => {
       // Call API to change password
       const response = await passwordService.changePassword(passwordData);
       
-      if (response.success) {
+      if (response) {
         // Show success message
         toastService.show({
           type: 'success',
