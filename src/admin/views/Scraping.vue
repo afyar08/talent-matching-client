@@ -303,7 +303,6 @@
           });
           this.refreshScraping(); // langsung refresh setelah mulai
         } catch (e) {
-          alert('Gagal mulai scraping');
         }
       },
       async refreshScraping() {
@@ -363,7 +362,6 @@
           this.dataList = [];
           this.refreshScraping();
         } catch (e) {
-          alert('Gagal membatalkan/hapus data');
         }
       },
       async importData() {

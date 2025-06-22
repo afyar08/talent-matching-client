@@ -70,7 +70,6 @@ const validateDateOfBirth = () => {
   const today = new Date();
   
   if (selectedDate > today) {
-    alert("Date of birth cannot be in the future");
     dateOfBirth.value = '';
   }
 };

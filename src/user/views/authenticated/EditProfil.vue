@@ -151,7 +151,6 @@ const goBack = () => {
 // Update form submission to show confirmation modal first
 const submitForm = () => {
   if (!email.value) {
-    alert('Email wajib diisi!');
     return;
   }
   
@@ -193,7 +192,6 @@ const confirmSubmit = async () => {
     }, 5000);
     
   } catch (error) {
-    alert('Gagal memperbarui profil!');
     console.error(error);
     showConfirmModal.value = false;
   } finally {

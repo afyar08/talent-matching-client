@@ -51,7 +51,6 @@ const removeSkill = (skill) => {
 // Handle form submission
 const submitForm = () => {
   if (selectedSkills.value.length === 0) {
-    alert('Please select at least one skill');
     return;
   }
   

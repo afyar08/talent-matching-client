@@ -218,7 +218,6 @@
           this.pages = Array.from({ length: this.lastPage }, (_, i) => i + 1);
           this.updatePageData();
         } catch (e) {
-          alert('Gagal mengambil data pekerjaan');
           console.error(e);
         }
       },
