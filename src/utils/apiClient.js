@@ -14,8 +14,14 @@ apiClient.interceptors.response.use(
     // If the error is 401, redirect to login page
     if (error.response && error.response.status === 401) {
       // Clear any auth tokens stored in localStorage
-      localStorage.removeItem('user-token');
       localStorage.removeItem('user-id');
+      localStorage.removeItem('user-name');
+      localStorage.removeItem('user-token');
+      localStorage.removeItem('token-expired-date');
+      localStorage.removeItem('user-profile-picture');
+      localStorage.removeItem('user-email');
+      localStorage.removeItem('user-refresh-token');
+      localStorage.removeItem('user-role');
       
       // Redirect to login page
       window.location.href = '/login';
